@@ -1,37 +1,42 @@
-# 오목 게임 (Gomoku)
+# 렌주룰 오목 게임 (Renju Gomoku)
 
-Kotlin으로 구현한 콘솔 기반 오목 게임입니다.
+Kotlin과 Swing으로 구현한 GUI 기반 렌주룰 오목 게임입니다.
 
-## 게임 방법
+## 게임 특징
 
-- 15x15 크기의 바둑판에서 플레이합니다
-- 흑돌(●)과 백돌(○)이 번갈아가며 둡니다
-- 가로, 세로, 대각선 중 한 방향으로 5개의 돌을 연속으로 놓으면 승리합니다
-- 좌표는 행과 열을 공백으로 구분하여 입력합니다 (예: 8 8)
+- 15x15 크기의 바둑판
+- 공식 렌주룰 적용 (흑돌 금수 규칙)
+- AI 대전 기능 (난이도: 쉬움, 보통, 어려움)
+- 그래픽 사용자 인터페이스
+- 무르기 기능
+- 마지막 수 표시
+
+## 렌주룰이란?
+
+렌주룰은 오목의 공식 경기 규칙으로, 선공인 흑돌에 대해 다음과 같은 제한을 둡니다:
+- **삼삼(3-3)**: 열린 3을 동시에 2개 이상 만드는 수 금지
+- **사사(4-4)**: 4를 동시에 2개 이상 만드는 수 금지  
+- **장목**: 6개 이상을 연속으로 놓는 수 금지
+
+백돌은 이러한 제한이 없으며, 5개 이상을 연속으로 놓으면 승리합니다.
 
 ## 실행 방법
 
-### 방법 1: Kotlin 컴파일러 사용
-```bash
-kotlinc Gomoku.kt -include-runtime -d gomoku.jar
-java -jar gomoku.jar
-```
-
-### 방법 2: Gradle 사용
+### 방법 1: Gradle 사용 (권장)
 ```bash
 ./gradlew run
 ```
 
-### 방법 3: JAR 파일 생성 후 실행
+### 방법 2: JAR 파일 생성 후 실행
 ```bash
 ./gradlew jar
-java -jar build/libs/gomoku-1.0-SNAPSHOT.jar
+java -jar build/libs/omok-1.0-SNAPSHOT.jar
 ```
 
 ## Windows에서 실행
 
 ### 사전 요구사항
-- Java 11 이상 설치 필요
+- Java 17 이상 설치 필요
 - 다운로드: https://adoptium.net/
 
 ### 실행 방법
@@ -39,8 +44,33 @@ java -jar build/libs/gomoku-1.0-SNAPSHOT.jar
 2. 프로젝트 폴더로 이동
 3. 다음 명령어 실행:
    ```cmd
+   gradlew.bat run
+   ```
+   
+   또는 JAR 파일 생성 후 실행:
+   ```cmd
    gradlew.bat jar
-   java -jar build\libs\gomoku-1.0-SNAPSHOT.jar
+   java -jar build\libs\omok-1.0-SNAPSHOT.jar
    ```
 
-또는 JAR 파일을 더블 클릭하여 실행할 수 있습니다.
+## 게임 방법
+
+1. 메뉴에서 게임 모드 선택:
+   - 사람 vs 사람
+   - 사람 vs AI (난이도 선택 가능)
+
+2. 마우스로 원하는 위치를 클릭하여 돌을 놓습니다
+
+3. 흑돌이 먼저 시작하며, 번갈아가며 돌을 놓습니다
+
+4. 가로, 세로, 대각선 중 한 방향으로 정확히 5개의 돌을 연속으로 놓으면 승리
+
+5. 흑돌의 경우 금수 위치는 빨간 X 표시로 나타납니다
+
+## 기술 스택
+
+- **언어**: Kotlin
+- **GUI 프레임워크**: Swing
+- **빌드 도구**: Gradle
+- **AI 알고리즘**: 미니맥스 알고리즘 (알파-베타 가지치기)
+- **Java 버전**: 17+
