@@ -17,19 +17,32 @@ dependencies {
 }
 
 tasks.withType<KotlinCompile> {
-    kotlinOptions.jvmTarget = "11"
+    kotlinOptions.jvmTarget = "17"
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 application {
-    mainClass.set("GomokuKt")
+    mainClass.set("com.omok.MainKt")
 }
 
 tasks.jar {
     manifest {
-        attributes["Main-Class"] = "GomokuKt"
+        attributes["Main-Class"] = "com.omok.MainKt"
     }
     configurations["compileClasspath"].forEach { file: File ->
         from(zipTree(file.absoluteFile))
     }
     duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
+sourceSets {
+    main {
+        kotlin {
+            setSrcDirs(listOf("src/main/kotlin"))
+        }
+    }
 }
