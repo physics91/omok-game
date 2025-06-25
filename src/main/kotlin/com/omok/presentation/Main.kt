@@ -29,7 +29,7 @@ fun main() {
             val gameApplicationService = dependencyContainer.createGameApplicationService()
             
             val gameWindow = GameWindow()
-            val gameController = GameController(gameApplicationService, gameWindow)
+            val gameController = GameController(gameApplicationService, gameWindow, dependencyContainer)
             
             // 이벤트 핸들러 등록
             dependencyContainer.eventBus.subscribe(gameController)

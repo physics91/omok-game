@@ -9,8 +9,9 @@ import com.omok.presentation.ui.GameWindow
 import javax.swing.SwingUtilities
 
 class GameController(
-    private val gameApplicationService: GameApplicationService,
-    private val gameWindow: GameWindow
+    private var gameApplicationService: GameApplicationService,
+    private val gameWindow: GameWindow,
+    private val dependencyContainer: com.omok.infrastructure.DependencyContainer
 ) : GameEventHandler {
     
     init {
@@ -34,12 +35,30 @@ class GameController(
     }
     
     fun startNewGame(mode: GameModeDto, aiDifficulty: AIDifficultyDto? = null, rule: GameRuleDto = GameRuleDto.STANDARD_RENJU) {
+        // 선택된 룰을 DependencyContainer에 설정하고 새로운 GameApplicationService 생성
+        val domainRule = GameMapper.toDomain(rule)
+        dependencyContainer.setGameRule(domainRule)
+        
+        // AI 난이도에 따라 새로운 ApplicationService 생성
+        val difficulty = aiDifficulty?.let { GameMapper.toDomain(it) } ?: com.omok.domain.model.AIDifficulty.MEDIUM
+        val newGameApplicationService = dependencyContainer.createGameApplicationService(difficulty)
+        
         val settings = GameSettingsDto(
             mode = mode,
             aiDifficulty = aiDifficulty,
             gameRule = rule
         )
-        gameApplicationService.startNewGameDto(settings)
+        newGameApplicationService.startNewGameDto(settings)
+        
+        // 현재 GameApplicationService를 새로운 것으로 교체
+        // 이를 위해 private var로 변경 필요
+        updateGameApplicationService(newGameApplicationService)
+    }
+    
+    private fun updateGameApplicationService(newService: GameApplicationService) {
+        gameApplicationService = newService
+        // 이벤트 핸들러 재등록
+        dependencyContainer.eventBus.subscribe(this)
     }
     
     fun makeMove(position: PositionDto): Boolean {
