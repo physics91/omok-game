@@ -14,10 +14,20 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib"))
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:1.7.3")
+    
+    testImplementation(kotlin("test"))
+    testImplementation("org.junit.jupiter:junit-jupiter:5.9.2")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:4.1.0")
 }
 
 tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "17"
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 java {
@@ -26,12 +36,12 @@ java {
 }
 
 application {
-    mainClass.set("com.omok.MainKt")
+    mainClass.set("com.omok.presentation.MainKt")
 }
 
 tasks.jar {
     manifest {
-        attributes["Main-Class"] = "com.omok.MainKt"
+        attributes["Main-Class"] = "com.omok.presentation.MainKt"
     }
     configurations["compileClasspath"].forEach { file: File ->
         from(zipTree(file.absoluteFile))
