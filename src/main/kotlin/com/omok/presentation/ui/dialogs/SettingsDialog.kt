@@ -103,11 +103,13 @@ class SettingsDialog(parent: Frame) : JDialog(parent, "설정", true) {
         val scrollPane = JScrollPane(contentPanel)
         scrollPane.border = BorderFactory.createEmptyBorder()
         scrollPane.verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED
-        scrollPane.preferredSize = Dimension(450, 500)
+        // Let content determine the size
         
         add(scrollPane, BorderLayout.CENTER)
         
         pack()
+        // Ensure minimum size for readability
+        minimumSize = Dimension(400, 300)
         setLocationRelativeTo(parent)
     }
     

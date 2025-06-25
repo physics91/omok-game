@@ -66,6 +66,7 @@ class GameController(
         gameWindow.updateStatus("게임이 시작되었습니다. 흑돌 차례입니다.")
         gameWindow.setUndoEnabled(false)
         gameWindow.clearLastMove()
+        gameWindow.clearWinAnimation()
     }
     
     private fun handleMoveMade(game: com.omok.domain.model.Game, move: com.omok.domain.model.Move) {

@@ -10,6 +10,8 @@ import java.awt.*
 import java.awt.event.ActionEvent
 import javax.swing.*
 import javax.swing.border.EmptyBorder
+import javax.swing.border.CompoundBorder
+import javax.swing.border.LineBorder
 
 class GameWindow : JFrame() {
     private lateinit var gameBoard: GameBoardPanel
@@ -190,18 +192,8 @@ class GameWindow : JFrame() {
         if (modeChoice == null) return
         
         // 게임 규칙 선택
-        val ruleOptions = GameRuleDto.values().map { it.displayName }.toTypedArray()
-        val ruleChoice = ModernDialog.showOptions(
-            this,
-            "게임 규칙",
-            "게임 규칙을 선택하세요:",
-            ruleOptions,
-            ruleOptions[0]
-        )
-        
-        if (ruleChoice == null) return
-        
-        val selectedRule = GameRuleDto.values().first { it.displayName == ruleChoice }
+        val selectedRule = showRuleSelectionDialog()
+        if (selectedRule == null) return
         
         when (modeChoice) {
             "사람 vs 사람" -> startNewGame(GameModeDto.PLAYER_VS_PLAYER, null, selectedRule)
@@ -328,6 +320,78 @@ class GameWindow : JFrame() {
         ModernDialog.showInfo(this, "렌주룰 설명", rulesText)
     }
     
+    private fun showRuleSelectionDialog(): GameRuleDto? {
+        val dialog = ModernDialog(this, "게임 규칙 선택", true)
+        
+        val contentPanel = JPanel()
+        contentPanel.layout = BoxLayout(contentPanel, BoxLayout.Y_AXIS)
+        contentPanel.background = UITheme.Colors.BACKGROUND
+        contentPanel.border = EmptyBorder(UITheme.Spacing.MD, UITheme.Spacing.MD, UITheme.Spacing.MD, UITheme.Spacing.MD)
+        
+        val buttonGroup = ButtonGroup()
+        val radioButtons = mutableMapOf<JRadioButton, GameRuleDto>()
+        
+        for (rule in GameRuleDto.values()) {
+            val rulePanel = JPanel()
+            rulePanel.layout = BoxLayout(rulePanel, BoxLayout.Y_AXIS)
+            rulePanel.background = UITheme.Colors.SURFACE
+            rulePanel.border = CompoundBorder(
+                LineBorder(UITheme.Colors.GRAY_200, 1, true),
+                EmptyBorder(UITheme.Spacing.SM, UITheme.Spacing.MD, UITheme.Spacing.SM, UITheme.Spacing.MD)
+            )
+            rulePanel.alignmentX = Component.LEFT_ALIGNMENT
+            rulePanel.maximumSize = Dimension(600, Integer.MAX_VALUE)
+            
+            val radioButton = JRadioButton(rule.displayName)
+            radioButton.font = UITheme.Fonts.BODY
+            radioButton.foreground = UITheme.Colors.GRAY_900
+            radioButton.background = UITheme.Colors.SURFACE
+            radioButton.isSelected = rule == GameRuleDto.STANDARD_RENJU
+            buttonGroup.add(radioButton)
+            radioButtons[radioButton] = rule
+            
+            val descriptionLabel = JLabel("<html><body style='width: 500px'>${rule.description}</body></html>")
+            descriptionLabel.font = UITheme.Fonts.CAPTION
+            descriptionLabel.foreground = UITheme.Colors.GRAY_600
+            descriptionLabel.border = EmptyBorder(UITheme.Spacing.XS, 20, 0, 0)
+            
+            rulePanel.add(radioButton)
+            rulePanel.add(descriptionLabel)
+            
+            contentPanel.add(rulePanel)
+            contentPanel.add(Box.createRigidArea(Dimension(0, UITheme.Spacing.SM)))
+        }
+        
+        val scrollPane = JScrollPane(contentPanel)
+        scrollPane.border = null
+        scrollPane.verticalScrollBarPolicy = JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED
+        scrollPane.preferredSize = Dimension(650, 400)
+        
+        dialog.setContent(scrollPane)
+        
+        var result: GameRuleDto? = null
+        
+        val confirmButton = ModernButton("확인", ModernButton.ButtonStyle.PRIMARY)
+        confirmButton.addActionListener {
+            result = radioButtons.entries.firstOrNull { it.key.isSelected }?.value
+            dialog.dispose()
+        }
+        
+        val cancelButton = ModernButton("취소", ModernButton.ButtonStyle.GHOST)
+        cancelButton.addActionListener {
+            dialog.dispose()
+        }
+        
+        dialog.addButton(cancelButton)
+        dialog.addButton(confirmButton)
+        
+        dialog.pack()
+        dialog.setLocationRelativeTo(this)
+        dialog.isVisible = true
+        
+        return result
+    }
+    
     private fun showAboutDialog() {
         val aboutText = """
             <html>
@@ -402,5 +466,9 @@ class GameWindow : JFrame() {
     fun showWinAnimation(winningLine: List<PositionDto>) {
         gameBoard.showWinAnimation(winningLine)
         gameInfoPanel.stopTimer()
+    }
+    
+    fun clearWinAnimation() {
+        gameBoard.clearWinAnimation()
     }
 }

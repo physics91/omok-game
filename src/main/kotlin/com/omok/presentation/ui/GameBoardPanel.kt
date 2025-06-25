@@ -202,6 +202,14 @@ class GameBoardPanel : JPanel() {
         repaint()
     }
     
+    fun clearWinAnimation() {
+        winAnimationTimer?.stop()
+        winAnimationTimer = null
+        winningLine = emptyList()
+        winAnimationProgress = 0f
+        repaint()
+    }
+    
     fun showWinAnimation(winningPositions: List<PositionDto>) {
         winningLine = winningPositions
         winAnimationProgress = 0f

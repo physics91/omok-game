@@ -1,6 +1,7 @@
 package com.omok.presentation.ui.components
 
 import com.omok.presentation.ui.theme.UITheme
+import com.omok.presentation.ui.layout.*
 import java.awt.*
 import javax.swing.*
 import javax.swing.border.EmptyBorder
@@ -78,17 +79,16 @@ class ModernDialog(
         ): String? {
             val dialog = ModernDialog(parent as? Frame, title, true)
             
-            val contentPanel = JPanel(BorderLayout())
+            val contentPanel = JPanel()
+            contentPanel.layout = BoxLayout(contentPanel, BoxLayout.Y_AXIS)
             contentPanel.background = UITheme.Colors.BACKGROUND
             
             val messageLabel = JLabel(message)
             messageLabel.font = UITheme.Fonts.BODY
             messageLabel.foreground = UITheme.Colors.GRAY_700
-            messageLabel.border = EmptyBorder(0, 0, UITheme.Spacing.LG, 0)
-            contentPanel.add(messageLabel, BorderLayout.NORTH)
-            
-            val optionsPanel = JPanel(GridLayout(0, 1, 0, UITheme.Spacing.SM))
-            optionsPanel.background = UITheme.Colors.BACKGROUND
+            messageLabel.alignmentX = Component.LEFT_ALIGNMENT
+            contentPanel.add(messageLabel)
+            contentPanel.add(Box.createRigidArea(Dimension(0, UITheme.Spacing.LG)))
             
             val buttonGroup = ButtonGroup()
             val radioButtons = mutableListOf<JRadioButton>()
@@ -99,12 +99,15 @@ class ModernDialog(
                 radioButton.foreground = UITheme.Colors.GRAY_800
                 radioButton.background = UITheme.Colors.BACKGROUND
                 radioButton.isSelected = option == (defaultOption ?: options.firstOrNull())
+                radioButton.alignmentX = Component.LEFT_ALIGNMENT
                 buttonGroup.add(radioButton)
                 radioButtons.add(radioButton)
-                optionsPanel.add(radioButton)
+                contentPanel.add(radioButton)
+                contentPanel.add(Box.createRigidArea(Dimension(0, UITheme.Spacing.SM)))
             }
             
-            contentPanel.add(optionsPanel, BorderLayout.CENTER)
+            // Set minimum width for better readability
+            contentPanel.preferredSize = Dimension(400, contentPanel.preferredSize.height)
             dialog.setContent(contentPanel)
             
             var result: String? = null
@@ -123,8 +126,9 @@ class ModernDialog(
             dialog.addButton(cancelButton)
             dialog.addButton(confirmButton)
             
-            dialog.preferredSize = Dimension(400, 250)
+            // Let dialog size itself based on content
             dialog.pack()
+            dialog.setLocationRelativeTo(parent)
             dialog.isVisible = true
             
             return result

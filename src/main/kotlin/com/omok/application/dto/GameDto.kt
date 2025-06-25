@@ -17,16 +17,16 @@ enum class AIDifficultyDto {
     EASY, MEDIUM, HARD
 }
 
-enum class GameRuleDto(val displayName: String) {
-    STANDARD_RENJU("표준 렌주룰"),
-    OPEN_RENJU("오픈 렌주룰"),
-    YAMAGUCHI_RULE("야마구치룰"),
-    SWAP_RULE("스왑룰"),
-    SWAP2_RULE("스영2룰"),
-    SOOSYRV_RULE("수시르브룰"),
-    TARAGUCHI_RULE("타라구치룰"),
-    FREESTYLE("자유룰"),
-    CARO_RULE("카로룰")
+enum class GameRuleDto(val displayName: String, val description: String) {
+    STANDARD_RENJU("표준 렌주룰", "흑돌 금수: 3-3, 4-4, 장목(6목 이상)"),
+    OPEN_RENJU("오픈 렌주룰", "표준 렌주룰 + 첫 3수 규정 (중앙→3×3→5×5)"),
+    YAMAGUCHI_RULE("야마구치룰", "흑이 첫 3수를 놓고, 백이 흑백 선택권 행사"),
+    SWAP_RULE("스왑룰", "첫 수 이후 백이 흑백 교체 선택 가능"),
+    SWAP2_RULE("스왑2룰", "흑이 3수를 놓고 백이 다양한 옵션 중 선택"),
+    SOOSYRV_RULE("수시르브룰", "8가지 표준 오프닝 중 하나로 시작"),
+    TARAGUCHI_RULE("타라구치룰", "10가지 표준 오프닝 + 백이 5번째 수 제안"),
+    FREESTYLE("자유룰", "제한 없음 - 5개 이상 연속이면 승리"),
+    CARO_RULE("카로룰", "베트남식 - 3-3, 4-4 허용, 6목 이상도 승리")
 }
 
 data class GameSettingsDto(
