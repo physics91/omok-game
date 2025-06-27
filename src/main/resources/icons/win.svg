@@ -1,0 +1,10 @@
+<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="winGradient">
+      <stop offset="0%" style="stop-color:#FFD700;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FFA500;stop-opacity:1" />
+    </radialGradient>
+  </defs>
+  <path d="M12 2L14.09 8.26L20.73 9.27L16.36 13.52L17.45 20.14L12 16.88L6.55 20.14L7.64 13.52L3.27 9.27L9.91 8.26L12 2Z" fill="url(#winGradient)" stroke="#FF8C00" stroke-width="1"/>
+  <circle cx="12" cy="12" r="3" fill="#FFF" opacity="0.8"/>
+</svg>

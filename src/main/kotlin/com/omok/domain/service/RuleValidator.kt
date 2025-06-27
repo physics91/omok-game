@@ -25,7 +25,7 @@ open class RuleValidator {
                isOverline(testBoard, position, player)
     }
     
-    protected open fun isDoubleThree(board: Board, position: Position, player: Player): Boolean {
+    open fun isDoubleThree(board: Board, position: Position, player: Player): Boolean {
         var openThreeCount = 0
         
         val directions = arrayOf(
@@ -57,7 +57,7 @@ open class RuleValidator {
         return openThreePatterns.any { pattern -> line.contains(pattern) }
     }
     
-    protected open fun isDoubleFour(board: Board, position: Position, player: Player): Boolean {
+    open fun isDoubleFour(board: Board, position: Position, player: Player): Boolean {
         var fourCount = 0
         
         val directions = arrayOf(
@@ -91,7 +91,7 @@ open class RuleValidator {
         return false
     }
     
-    protected open fun isOverline(board: Board, position: Position, player: Player): Boolean {
+    open fun isOverline(board: Board, position: Position, player: Player): Boolean {
         val directions = arrayOf(
             intArrayOf(0, 1),
             intArrayOf(1, 0),
@@ -132,6 +132,13 @@ open class RuleValidator {
         }
         
         return if (board.isFull()) GameState.Draw else GameState.Playing
+    }
+    
+    /**
+     * 게임 상태 체크 - 기본적으로 checkWin과 동일, 특수 룰에서 오버라이드
+     */
+    open fun checkGameState(board: Board, lastMove: Move): GameState {
+        return checkWin(board, lastMove.position, lastMove.player)
     }
     
     protected fun getWinningLine(

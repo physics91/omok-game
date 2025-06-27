@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.omok.domain.service.rule.OpenRenjuValidatorTest" tests="7" skipped="0" failures="0" errors="0" timestamp="2025-06-26T12:58:04" hostname="DESKTOP-C82GKIE" time="0.072">
+  <properties/>
+  <testcase name="5수 제시와 선택 관리()" classname="com.omok.domain.service.rule.OpenRenjuValidatorTest" time="0.041"/>
+  <testcase name="셋째 수는 천원에서 2칸 이내 26점만 가능()" classname="com.omok.domain.service.rule.OpenRenjuValidatorTest" time="0.004"/>
+  <testcase name="둘째 수는 천원 주위 8곳만 가능()" classname="com.omok.domain.service.rule.OpenRenjuValidatorTest" time="0.001"/>
+  <testcase name="스왑 후에는 플레이어 역할이 바뀜()" classname="com.omok.domain.service.rule.OpenRenjuValidatorTest" time="0.001"/>
+  <testcase name="첫 수는 반드시 천원에 놓아야 함()" classname="com.omok.domain.service.rule.OpenRenjuValidatorTest" time="0.003"/>
+  <testcase name="4수 후 5수 제시 대기 상태가 됨()" classname="com.omok.domain.service.rule.OpenRenjuValidatorTest" time="0.005"/>
+  <testcase name="3수 후 스왑 대기 상태가 됨()" classname="com.omok.domain.service.rule.OpenRenjuValidatorTest" time="0.005"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

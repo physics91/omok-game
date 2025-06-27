@@ -8,29 +8,44 @@ import com.omok.domain.service.AIStrategy
 import com.omok.domain.service.GameEngine
 import com.omok.domain.service.RuleValidator
 import com.omok.infrastructure.ai.MinimaxAI
-import com.omok.infrastructure.ai.AdvancedAI
+import com.omok.infrastructure.ai.EnhancedAI
 import com.omok.domain.model.GameRule
 import com.omok.domain.service.rule.RuleValidatorFactory
+import com.omok.domain.achievement.AchievementManager
+import com.omok.domain.achievement.AchievementRepository
+import com.omok.infrastructure.achievement.FileAchievementRepository
+import com.omok.domain.logging.DomainLogger
+import com.omok.infrastructure.logging.DomainLoggerImpl
+import com.omok.infrastructure.logging.Logger
 
 class DependencyContainer {
-    private val _eventBus = GameEventBus()
     private var _ruleValidator: RuleValidator = RuleValidator()
     private var _currentRule: GameRule = GameRule.STANDARD_RENJU
     
-    val eventBus: GameEventBus get() = _eventBus
+    // 성취도 시스템 초기화
+    private val achievementRepository: AchievementRepository = FileAchievementRepository()
+    private val _achievementManager: AchievementManager by lazy {
+        AchievementManager(eventBus, achievementRepository)
+    }
+    
+    val eventBus: GameEventBus get() = GameEventBus
     val ruleValidator: RuleValidator get() = _ruleValidator
+    val achievementManager: AchievementManager get() = _achievementManager
+    
+    // 로거 인스턴스
+    private val domainLogger: DomainLogger = DomainLoggerImpl(Logger)
     
     fun createAIStrategy(difficulty: AIDifficulty): AIStrategy {
-        // 어려움 난이도는 고급 AI 사용
-        return if (difficulty == AIDifficulty.HARD) {
-            AdvancedAI(difficulty, _ruleValidator)
+        // 중간 이상 난이도는 향상된 AI 사용
+        return if (difficulty == AIDifficulty.MEDIUM || difficulty == AIDifficulty.HARD) {
+            EnhancedAI(difficulty, _ruleValidator)
         } else {
             MinimaxAI(difficulty, _ruleValidator)
         }
     }
     
     fun createGameEngine(aiStrategy: AIStrategy? = null): GameEngine {
-        return GameEngine(_ruleValidator, aiStrategy)
+        return GameEngine(_ruleValidator, aiStrategy, domainLogger)
     }
     
     fun setGameRule(rule: GameRule) {
@@ -42,10 +57,11 @@ class DependencyContainer {
         val aiStrategy = createAIStrategy(aiDifficulty)
         val gameEngine = createGameEngine(aiStrategy)
         
-        val startGameUseCase = StartGameUseCase(gameEngine, _eventBus)
-        val makeMoveUseCase = MakeMoveUseCase(gameEngine, _eventBus)
-        val undoMoveUseCase = UndoMoveUseCase(gameEngine, _eventBus)
-        val processAIMoveUseCase = ProcessAIMoveUseCase(gameEngine, _eventBus)
+        val startGameUseCase = StartGameUseCase(gameEngine)
+        val makeMoveUseCase = MakeMoveUseCase(gameEngine)
+        val undoMoveUseCase = UndoMoveUseCase(gameEngine)
+        val processAIMoveUseCase = ProcessAIMoveUseCase(gameEngine)
+        val processAchievementEventUseCase = ProcessAchievementEventUseCase(achievementManager)
         
         return GameApplicationService(
             startGameUseCase,
@@ -54,5 +70,9 @@ class DependencyContainer {
             processAIMoveUseCase,
             gameEngine
         )
+    }
+    
+    fun createProcessAchievementEventUseCase(): ProcessAchievementEventUseCase {
+        return ProcessAchievementEventUseCase(achievementManager)
     }
 }

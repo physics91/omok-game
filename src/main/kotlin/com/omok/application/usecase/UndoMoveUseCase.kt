@@ -7,8 +7,7 @@ import com.omok.domain.service.GameEngine
 import com.omok.domain.service.GameProcessResult
 
 class UndoMoveUseCase(
-    private val gameEngine: GameEngine,
-    private val eventBus: GameEventBus
+    private val gameEngine: GameEngine
 ) {
     
     fun execute(game: Game): Game? {
@@ -17,7 +16,7 @@ class UndoMoveUseCase(
         return when (result) {
             is GameProcessResult.Success -> {
                 val updatedGame = result.game
-                eventBus.publish(GameEvent.MoveUndone(updatedGame))
+                GameEventBus.publish(GameEvent.MoveUndone(updatedGame))
                 updatedGame
             }
             is GameProcessResult.Failure -> null

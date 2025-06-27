@@ -9,8 +9,7 @@ import com.omok.domain.service.GameEngine
 import com.omok.domain.service.GameProcessResult
 
 class MakeMoveUseCase(
-    private val gameEngine: GameEngine,
-    private val eventBus: GameEventBus
+    private val gameEngine: GameEngine
 ) {
     
     fun execute(game: Game, position: Position): Game? {
@@ -21,16 +20,16 @@ class MakeMoveUseCase(
                 val updatedGame = result.game
                 val move = updatedGame.getLastMove()!!
                 
-                eventBus.publish(GameEvent.MoveMade(updatedGame, move))
+                GameEventBus.publish(GameEvent.MoveMade(updatedGame, move))
                 
                 if (updatedGame.getState() != GameState.Playing) {
-                    eventBus.publish(GameEvent.GameEnded(updatedGame, updatedGame.getState()))
+                    GameEventBus.publish(GameEvent.GameEnded(updatedGame, updatedGame.getState()))
                 }
                 
                 updatedGame
             }
             is GameProcessResult.Failure -> {
-                eventBus.publish(GameEvent.InvalidMoveAttempted(position, result.reason))
+                GameEventBus.publish(GameEvent.InvalidMoveAttempted(position, result.reason))
                 null
             }
         }

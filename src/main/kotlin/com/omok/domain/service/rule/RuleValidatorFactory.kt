@@ -31,41 +31,120 @@ class StandardRenjuValidator : RuleValidator() {
 }
 
 /**
- * 오픈 렌주룰 검증기
+ * 오픈 렌주룰 검증기 (완전한 구현)
+ * - 1수: 천원(중앙) 필수
+ * - 2수: 천원 주위 8곳 중 하나
+ * - 3수: 천원에서 2칸 이내 (26가지 주형)
+ * - 스왑: 백이 흑백 교체 가능
+ * - 5수: 흑이 2개 제시, 백이 선택
  */
 class OpenRenjuValidator : RuleValidator() {
+    
+    private var isSwapped = false
+    private var proposedFifthMoves: List<Position> = emptyList()
     
     override fun isValidMove(board: Board, position: Position, player: Player): Boolean {
         val moveCount = board.getMoveCount()
         
-        // 첫 수는 반드시 중앙(천원)
+        // 스왑이 발생한 경우 플레이어 역할이 바뀜
+        val effectivePlayer = if (isSwapped) player.opponent() else player
+        val effectiveMoveCount = if (isSwapped && moveCount >= 3) moveCount else moveCount
+        
+        // 첫 수는 반드시 중앙(천원) - 흑
         if (moveCount == 0) {
-            return position == Position.center()
+            return position == Position.center() && player == Player.BLACK
         }
         
-        // 둘째 수(백)는 천원 주변 3×3 범위
+        // 둘째 수(백)는 천원 주위 8곳만 가능
         if (moveCount == 1) {
-            val center = Position.center()
-            val distance = maxOf(
-                kotlin.math.abs(position.row - center.row),
-                kotlin.math.abs(position.col - center.col)
-            )
-            return distance <= 1
+            return isIn8PointArea(position) && board.isEmpty(position) && player == Player.WHITE
         }
         
-        // 셋째 수(흑)는 중앙 5×5 범위
+        // 셋째 수(흑)는 천원에서 2칸 이내 (26점)
         if (moveCount == 2) {
-            val center = Position.center()
-            val distance = maxOf(
-                kotlin.math.abs(position.row - center.row),
-                kotlin.math.abs(position.col - center.col)
-            )
-            return distance <= 2
+            return isIn26PointArea(position) && board.isEmpty(position) && player == Player.BLACK
+        }
+        
+        // 4수(백) - 스왑 후이므로 아무 곳이나 가능
+        if (effectiveMoveCount == 3) {
+            return board.isEmpty(position)
+        }
+        
+        // 5수(흑) - 2개를 제시해야 함 (특별 처리 필요)
+        if (effectiveMoveCount == 4) {
+            // 5수는 GameEngine에서 특별 처리
+            return board.isEmpty(position)
         }
         
         // 이후는 표준 렌주룰
         return super.isValidMove(board, position, player)
     }
+    
+    /**
+     * 게임 상태 체크 - 스왑과 5수 선택을 위한 특수 상태 추가
+     */
+    override fun checkGameState(board: Board, lastMove: Move): GameState {
+        val moveCount = board.getMoveCount()
+        
+        // 3수 후 스왑 대기
+        if (moveCount == 3 && !isSwapped) {
+            return GameState.WaitingForSwap
+        }
+        
+        // 4수 후 5수 제시 대기 (스왑이 완료된 후)
+        if (moveCount == 4 && (isSwapped || moveCount > 3)) {
+            return GameState.WaitingForFifthMove()
+        }
+        
+        // 5수 제시 후 선택 대기는 별도 처리 필요
+        // (GameEngine에서 proposeFifthMoves 호출 후 설정됨)
+        
+        // 일반 승부 체크
+        return checkWin(board, lastMove.position, lastMove.player)
+    }
+    
+    /**
+     * 8점 영역 확인 (천원 주변 3×3에서 중앙 제외)
+     */
+    private fun isIn8PointArea(position: Position): Boolean {
+        val center = Position.center()
+        val rowDistance = kotlin.math.abs(position.row - center.row)
+        val colDistance = kotlin.math.abs(position.col - center.col)
+        
+        // 3×3 영역 내부이고 중앙이 아닌 경우
+        return rowDistance <= 1 && colDistance <= 1 && position != center
+    }
+    
+    /**
+     * 26점 영역 확인 (천원 주변 5×5에서 중앙 제외)
+     */
+    private fun isIn26PointArea(position: Position): Boolean {
+        val center = Position.center()
+        val rowDistance = kotlin.math.abs(position.row - center.row)
+        val colDistance = kotlin.math.abs(position.col - center.col)
+        
+        // 5×5 영역 내부이고 중앙이 아닌 경우
+        return rowDistance <= 2 && colDistance <= 2 && position != center
+    }
+    
+    /**
+     * 스왑 설정
+     */
+    fun setSwapped(swapped: Boolean) {
+        isSwapped = swapped
+    }
+    
+    /**
+     * 5수 제안 설정
+     */
+    fun setProposedFifthMoves(moves: List<Position>) {
+        proposedFifthMoves = moves
+    }
+    
+    /**
+     * 5수 제안 가져오기
+     */
+    fun getProposedFifthMoves(): List<Position> = proposedFifthMoves
 }
 
 /**

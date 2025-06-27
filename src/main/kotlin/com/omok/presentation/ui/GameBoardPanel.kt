@@ -3,8 +3,14 @@ package com.omok.presentation.ui
 import com.omok.application.dto.*
 import com.omok.presentation.controller.GameController
 import com.omok.presentation.ui.theme.UITheme
+import com.omok.presentation.ui.theme.BoardRenderer
+import com.omok.presentation.ui.theme.ThemeManager
+import com.omok.presentation.ui.theme.ThemeChangeListener
+import com.omok.presentation.ui.theme.GameTheme
 import com.omok.presentation.ui.effects.SoundEffects
 import com.omok.presentation.ui.components.ModernTooltip
+import com.omok.presentation.ui.icons.IconLoader
+import com.omok.presentation.ui.settings.UIGameSettings
 import java.awt.*
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
@@ -12,8 +18,9 @@ import java.awt.geom.Ellipse2D
 import java.awt.geom.Path2D
 import javax.swing.JPanel
 import javax.swing.Timer
+import kotlin.math.sin
 
-class GameBoardPanel : JPanel() {
+class GameBoardPanel : JPanel(), ThemeChangeListener {
     private data class AnimatedStone(
         val position: PositionDto,
         val player: PlayerDto,
@@ -23,29 +30,21 @@ class GameBoardPanel : JPanel() {
     
     companion object {
         const val BOARD_SIZE = 15
-        const val CELL_SIZE = 35  // 적절한 크기
-        const val MARGIN = 45  // 충분한 여백 확보 (좌표 라벨 공간 포함)
-        const val BOARD_PIXEL_SIZE = (BOARD_SIZE - 1) * CELL_SIZE  // 14 * 35 = 490px
-        const val STONE_SIZE = 30  // 셀 크기의 85%
+        const val CELL_SIZE = 40  // 테마 렌더러와 일치
+        const val MARGIN = 30  // 테마 렌더러와 일치
+        const val BOARD_PIXEL_SIZE = (BOARD_SIZE - 1) * CELL_SIZE
+        const val STONE_SIZE = 30
         const val MARK_SIZE = 10
         const val STAR_POINTS_SIZE = 7
-        const val TOTAL_BOARD_SIZE = BOARD_PIXEL_SIZE + 2 * MARGIN  // 490 + 90 = 580px
-        
-        val BOARD_COLOR = UITheme.Colors.BOARD_BACKGROUND
-        val LINE_COLOR = UITheme.Colors.BOARD_LINE
-        val BLACK_STONE_COLOR = UITheme.Colors.BLACK_STONE
-        val WHITE_STONE_COLOR = UITheme.Colors.WHITE_STONE
-        val LAST_MOVE_COLOR = UITheme.Colors.LAST_MOVE_INDICATOR
-        val HOVER_COLOR = UITheme.Colors.HOVER_OVERLAY
-        val FORBIDDEN_COLOR = UITheme.Colors.FORBIDDEN_OVERLAY
-        val WIN_LINE_COLOR = UITheme.Colors.WIN_LINE
+        const val TOTAL_BOARD_SIZE = BOARD_PIXEL_SIZE + 2 * MARGIN
     }
     
-    private lateinit var controller: GameController
+    private var controller: GameController? = null
     private var hoverPosition: PositionDto? = null
     private var lastMovePosition: PositionDto? = null
     private var board: BoardDto = BoardDto(Array(15) { Array(15) { null } })
     private var forbiddenMoves = setOf<PositionDto>()
+    private var moveHistory: List<MoveDto> = emptyList()
     private var winningLine = listOf<PositionDto>()
     private val animatedStones = mutableMapOf<PositionDto, AnimatedStone>()
     private var animationTimer: Timer? = null
@@ -53,13 +52,30 @@ class GameBoardPanel : JPanel() {
     private var winAnimationTimer: Timer? = null
     private var keyboardFocusPosition: PositionDto? = null
     
+    // 오픈 렌주룰 관련
+    private var fifthMoveProposalMode = false
+    private var proposedFifthMoves = mutableListOf<PositionDto>()
+    private var fifthMoveProposalCallback: ((List<PositionDto>) -> Unit)? = null
+    private var fifthMoveSelectionMode = false
+    private var fifthMoveOptions = listOf<PositionDto>()
+    private var fifthMoveSelectionCallback: ((PositionDto) -> Unit)? = null
+    
+    // AI 사고 과정 시각화
+    private var aiThinkingInfo: AIThinkingInfoDto? = null
+    private var aiThinkingTimer: Timer? = null
+    
+    // 테마 렌더러
+    private val boardRenderer = BoardRenderer(CELL_SIZE, MARGIN)
+    
     init {
-        // 전체 보드 크기 설정 (660x660)
+        // 전체 보드 크기 설정
         preferredSize = Dimension(TOTAL_BOARD_SIZE, TOTAL_BOARD_SIZE)
         minimumSize = preferredSize
         maximumSize = preferredSize
-        background = BOARD_COLOR
         isOpaque = true
+        
+        // 테마 변경 리스너 등록
+        ThemeManager.addThemeChangeListener(this)
         
         addMouseListener(object : MouseAdapter() {
             override fun mouseClicked(e: MouseEvent) {
@@ -70,6 +86,7 @@ class GameBoardPanel : JPanel() {
                 hoverPosition = null
                 updateForbiddenMoves()
                 ModernTooltip.hide()
+                controller?.updateMouseCoordinate(null)  // 좌표 지우기
                 repaint()
             }
         })
@@ -88,6 +105,9 @@ class GameBoardPanel : JPanel() {
                 if (newPosition != hoverPosition) {
                     hoverPosition = newPosition
                     updateForbiddenMoves()
+                    
+                    // 좌표 업데이트
+                    controller?.updateMouseCoordinate(newPosition)
                     
                     // Show tooltip for forbidden moves
                     if (newPosition != null && forbiddenMoves.contains(newPosition)) {
@@ -108,21 +128,47 @@ class GameBoardPanel : JPanel() {
     }
     
     private fun updateForbiddenMoves() {
-        forbiddenMoves = if (::controller.isInitialized) {
-            controller.getForbiddenMoves()
-        } else {
-            emptySet()
-        }
+        forbiddenMoves = controller?.getForbiddenMoves() ?: emptySet()
     }
     
     private fun handleClick(x: Int, y: Int) {
-        if (!::controller.isInitialized) return
+        // 컨트롤러가 없어도 클릭 리스너는 동작하도록 수정
         
         val col = (x - MARGIN + CELL_SIZE / 2) / CELL_SIZE
         val row = (y - MARGIN + CELL_SIZE / 2) / CELL_SIZE
         
         if (row in 0 until BOARD_SIZE && col in 0 until BOARD_SIZE) {
             val position = PositionDto(row, col)
+            
+            // 5수 제시 모드 처리
+            if (fifthMoveProposalMode) {
+                if (board.isEmpty(position) && !proposedFifthMoves.contains(position)) {
+                    proposedFifthMoves.add(position)
+                    SoundEffects.playStonePlace()
+                    repaint()
+                    
+                    if (proposedFifthMoves.size == 2) {
+                        fifthMoveProposalCallback?.invoke(proposedFifthMoves.toList())
+                        fifthMoveProposalMode = false
+                        proposedFifthMoves.clear()
+                        fifthMoveProposalCallback = null
+                    }
+                }
+                return
+            }
+            
+            // 5수 선택 모드 처리
+            if (fifthMoveSelectionMode) {
+                if (fifthMoveOptions.contains(position)) {
+                    fifthMoveSelectionCallback?.invoke(position)
+                    fifthMoveSelectionMode = false
+                    fifthMoveOptions = emptyList()
+                    fifthMoveSelectionCallback = null
+                    SoundEffects.playStonePlace()
+                    repaint()
+                }
+                return
+            }
             
             // Check if move is forbidden
             if (forbiddenMoves.contains(position)) {
@@ -131,10 +177,16 @@ class GameBoardPanel : JPanel() {
                 return
             }
             
-            if (controller.makeMove(position)) {
-                SoundEffects.playStonePlace()
-                updateForbiddenMoves()
-                repaint()
+            // 보드 클릭 리스너 호출
+            boardClickListeners.forEach { it(position) }
+            
+            // 컨트롤러가 있으면 이동 처리
+            controller?.let { ctrl ->
+                if (ctrl.makeMove(position)) {
+                    SoundEffects.playStonePlace()
+                    updateForbiddenMoves()
+                    repaint()
+                }
             }
         }
     }
@@ -166,6 +218,11 @@ class GameBoardPanel : JPanel() {
         board = newBoard
         updateForbiddenMoves()
         repaint()
+    }
+    
+    fun updateBoard(newBoard: BoardDto, moveHistory: List<MoveDto>) {
+        this.moveHistory = moveHistory
+        updateBoard(newBoard)
     }
     
     private fun startStoneAnimation(position: PositionDto) {
@@ -238,92 +295,25 @@ class GameBoardPanel : JPanel() {
         g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
         g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
         
-        // 배경 명시적으로 그리기
-        g2d.color = BOARD_COLOR
-        g2d.fillRect(0, 0, width, height)
+        // 테마 렌더러를 사용하여 보드 그리기
+        boardRenderer.drawBoard(g2d, width, height)
         
-        drawBoard(g2d)
-        drawStarPoints(g2d)
         drawForbiddenPoints(g2d)
+        drawAIThinking(g2d)  // AI 사고 과정 표시
         drawStones(g2d)
+        drawFifthMoveProposals(g2d)
+        drawFifthMoveOptions(g2d)
         drawWinningLine(g2d)
         drawLastMoveMarker(g2d)
         drawHover(g2d)
         drawKeyboardFocus(g2d)
     }
     
-    private fun drawBoard(g2d: Graphics2D) {
-        // 모든 격자선 그리기
-        g2d.color = LINE_COLOR
-        g2d.stroke = BasicStroke(1f)
-        
-        // 가로선
-        for (i in 0 until BOARD_SIZE) {
-            val y = MARGIN + i * CELL_SIZE
-            g2d.drawLine(MARGIN, y, MARGIN + BOARD_PIXEL_SIZE, y)
-        }
-        
-        // 세로선
-        for (i in 0 until BOARD_SIZE) {
-            val x = MARGIN + i * CELL_SIZE
-            g2d.drawLine(x, MARGIN, x, MARGIN + BOARD_PIXEL_SIZE)
-        }
-        
-        // 테두리 강조
-        g2d.stroke = BasicStroke(2f)
-        g2d.drawRect(MARGIN - 1, MARGIN - 1, BOARD_PIXEL_SIZE + 2, BOARD_PIXEL_SIZE + 2)
-        
-        // 좌표 라벨 그리기
-        g2d.font = Font("Arial", Font.BOLD, 14)
-        g2d.color = UITheme.Colors.GRAY_700
-        
-        for (i in 0 until BOARD_SIZE) {
-            val pos = MARGIN + i * CELL_SIZE
-            val label = ('A' + i).toString()
-            val number = (BOARD_SIZE - i).toString()
-            
-            val fm = g2d.fontMetrics
-            val labelWidth = fm.stringWidth(label)
-            val numberWidth = fm.stringWidth(number)
-            
-            // 상하 라벨
-            g2d.drawString(label, pos - labelWidth / 2, MARGIN - 20)
-            g2d.drawString(label, pos - labelWidth / 2, MARGIN + BOARD_PIXEL_SIZE + 30)
-            
-            // 좌우 숫자
-            g2d.drawString(number, MARGIN - numberWidth - 15, pos + fm.height / 4)
-            g2d.drawString(number, MARGIN + BOARD_PIXEL_SIZE + 15, pos + fm.height / 4)
-        }
-    }
-    
-    private fun drawStarPoints(g2d: Graphics2D) {
-        g2d.color = LINE_COLOR
-        // 오목판의 표준 화점 위치
-        val starPoints = listOf(
-            PositionDto(3, 3), PositionDto(3, 11), PositionDto(11, 3), PositionDto(11, 11),
-            PositionDto(7, 7)  // 중앙 화점
-        )
-        
-        for (point in starPoints) {
-            val x = MARGIN + point.col * CELL_SIZE
-            val y = MARGIN + point.row * CELL_SIZE
-            g2d.fillOval(x - STAR_POINTS_SIZE / 2, y - STAR_POINTS_SIZE / 2, 
-                        STAR_POINTS_SIZE, STAR_POINTS_SIZE)
-        }
-    }
     
     private fun drawForbiddenPoints(g2d: Graphics2D) {
         for (pos in forbiddenMoves) {
-            val x = MARGIN + pos.col * CELL_SIZE
-            val y = MARGIN + pos.row * CELL_SIZE
-            
-            g2d.color = Color(FORBIDDEN_COLOR.red, FORBIDDEN_COLOR.green, FORBIDDEN_COLOR.blue, 60)
-            g2d.fillOval(x - 12, y - 12, 24, 24)
-            
-            g2d.color = FORBIDDEN_COLOR
-            g2d.stroke = BasicStroke(2.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
-            g2d.drawLine(x - 8, y - 8, x + 8, y + 8)
-            g2d.drawLine(x - 8, y + 8, x + 8, y - 8)
+            val domainPos = com.omok.domain.model.Position(pos.row, pos.col)
+            boardRenderer.drawForbidden(g2d, domainPos)
         }
     }
     
@@ -337,15 +327,23 @@ class GameBoardPanel : JPanel() {
                     val x = MARGIN + col * CELL_SIZE
                     val y = MARGIN + row * CELL_SIZE
                     
+                    val domainPos = com.omok.domain.model.Position(row, col)
+                    val domainPlayer = if (stone == PlayerDto.BLACK) 
+                        com.omok.domain.model.Player.BLACK else com.omok.domain.model.Player.WHITE
+                    val isLastMove = position == lastMovePosition
+                    
                     val animatedStone = animatedStones[position]
                     if (animatedStone != null) {
                         // Draw with animation
                         val oldComposite = g2d.composite
                         g2d.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, animatedStone.opacity)
-                        drawStone(g2d, x, y, stone, animatedStone.scale)
+                        // TODO: Add animation scale support to renderer
+                        boardRenderer.drawStone(g2d, domainPos, domainPlayer, isLastMove)
                         g2d.composite = oldComposite
                     } else {
-                        drawStone(g2d, x, y, stone)
+                        boardRenderer.drawStone(g2d, domainPos, domainPlayer, isLastMove, 
+                            UIGameSettings.getInstance().showMoveNumbers, 
+                            getMoveNumber(position))
                     }
                 }
             }
@@ -396,6 +394,45 @@ class GameBoardPanel : JPanel() {
         }
     }
     
+    private fun drawMoveNumber(g2d: Graphics2D, x: Int, y: Int, position: PositionDto, player: PlayerDto) {
+        // 게임 히스토리에서 이 위치의 수 번호 찾기
+        val moveNumber = findMoveNumber(position)
+        if (moveNumber > 0) {
+            // 수 번호 텍스트 설정
+            val fontSize = when {
+                moveNumber < 10 -> 14
+                moveNumber < 100 -> 12
+                else -> 10
+            }
+            g2d.font = Font("맑은 고딕", Font.BOLD, fontSize)
+            
+            // 텍스트 색상 (돌 색과 대비되도록)
+            g2d.color = if (player == PlayerDto.BLACK) Color.WHITE else Color.BLACK
+            
+            // 텍스트 중앙 정렬
+            val fm = g2d.fontMetrics
+            val text = moveNumber.toString()
+            val textWidth = fm.stringWidth(text)
+            val textHeight = fm.ascent
+            
+            val textX = x - textWidth / 2
+            val textY = y + textHeight / 2 - 2
+            
+            // 텍스트 그리기
+            g2d.drawString(text, textX, textY)
+        }
+    }
+    
+    private fun findMoveNumber(position: PositionDto): Int {
+        // 게임 히스토리에서 해당 위치의 수 번호 찾기
+        for (move in moveHistory) {
+            if (move.position.row == position.row && move.position.col == position.col) {
+                return move.moveNumber
+            }
+        }
+        return 0
+    }
+    
     private fun drawWinningLine(g2d: Graphics2D) {
         if (winningLine.isNotEmpty() && winAnimationProgress > 0) {
             val startPos = winningLine.first()
@@ -421,7 +458,7 @@ class GameBoardPanel : JPanel() {
             g2d.drawLine(startX, startY, animX, animY)
             
             g2d.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.8f * winAnimationProgress)
-            g2d.color = WIN_LINE_COLOR
+            g2d.color = UITheme.Colors.WIN_LINE
             g2d.stroke = BasicStroke(8f * pulse, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
             g2d.drawLine(startX, startY, animX, animY)
             
@@ -467,7 +504,7 @@ class GameBoardPanel : JPanel() {
             val y = MARGIN + position.row * CELL_SIZE
             
             g2d.stroke = BasicStroke(3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND)
-            g2d.color = Color(LAST_MOVE_COLOR.red, LAST_MOVE_COLOR.green, LAST_MOVE_COLOR.blue, 150)
+            g2d.color = Color(UITheme.Colors.LAST_MOVE_INDICATOR.red, UITheme.Colors.LAST_MOVE_INDICATOR.green, UITheme.Colors.LAST_MOVE_INDICATOR.blue, 150)
             val markSize = 12
             val halfSize = STONE_SIZE / 2
             
@@ -479,7 +516,7 @@ class GameBoardPanel : JPanel() {
             
             g2d.fill(triangle)
             
-            g2d.color = LAST_MOVE_COLOR
+            g2d.color = UITheme.Colors.LAST_MOVE_INDICATOR
             g2d.draw(triangle)
         }
     }
@@ -487,37 +524,13 @@ class GameBoardPanel : JPanel() {
     private fun drawHover(g2d: Graphics2D) {
         val pos = hoverPosition
         if (pos != null && board.isEmpty(pos) && isPlayerTurn()) {
-            val x = MARGIN + pos.col * CELL_SIZE
-            val y = MARGIN + pos.row * CELL_SIZE
-            
-            val game = controller.getCurrentGame()
-            val currentPlayer = game?.currentPlayer
-            
-            if (currentPlayer != null) {
-                val halfSize = STONE_SIZE / 2
-                
-                g2d.color = if (currentPlayer == PlayerDto.BLACK) {
-                    Color(0, 0, 0, 50)
-                } else {
-                    Color(255, 255, 255, 100)
-                }
-                g2d.fillOval(x - halfSize, y - halfSize, STONE_SIZE, STONE_SIZE)
-                
-                g2d.color = if (currentPlayer == PlayerDto.BLACK) {
-                    UITheme.Colors.BLACK_STONE
-                } else {
-                    UITheme.Colors.GRAY_400
-                }
-                g2d.stroke = BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND,
-                    1.0f, floatArrayOf(5f, 5f), 0f)
-                g2d.drawOval(x - halfSize, y - halfSize, STONE_SIZE, STONE_SIZE)
-            }
+            val domainPos = com.omok.domain.model.Position(pos.row, pos.col)
+            boardRenderer.drawHover(g2d, domainPos)
         }
     }
     
     private fun isPlayerTurn(): Boolean {
-        if (!::controller.isInitialized) return false
-        val game = controller.getCurrentGame() ?: return false
+        val game = controller?.getCurrentGame() ?: return false
         return game.isPlayerTurn
     }
     
@@ -537,5 +550,211 @@ class GameBoardPanel : JPanel() {
             val focusSize = STONE_SIZE + 8
             g2d.drawOval(x - focusSize / 2, y - focusSize / 2, focusSize, focusSize)
         }
+    }
+    
+    /**
+     * 오픈 렌주룰 - 5수 제시 중인 위치 표시
+     */
+    private fun drawFifthMoveProposals(g2d: Graphics2D) {
+        if (fifthMoveProposalMode) {
+            for (pos in proposedFifthMoves) {
+                val x = MARGIN + pos.col * CELL_SIZE
+                val y = MARGIN + pos.row * CELL_SIZE
+                
+                // 제시된 위치에 특별 마커 표시
+                g2d.color = UITheme.Colors.PRIMARY
+                g2d.stroke = BasicStroke(3f)
+                val markerSize = STONE_SIZE + 10
+                g2d.drawOval(x - markerSize / 2, y - markerSize / 2, markerSize, markerSize)
+                
+                // 숫자 표시
+                g2d.font = Font("Arial", Font.BOLD, 16)
+                val number = (proposedFifthMoves.indexOf(pos) + 1).toString()
+                val fm = g2d.fontMetrics
+                val numberWidth = fm.stringWidth(number)
+                g2d.drawString(number, x - numberWidth / 2, y + fm.height / 4)
+            }
+            
+            // 안내 메시지
+            if (proposedFifthMoves.size < 2) {
+                g2d.color = UITheme.Colors.GRAY_700
+                g2d.font = Font("맑은 고딕", Font.PLAIN, 14)
+                val message = "${2 - proposedFifthMoves.size}개의 위치를 더 선택하세요"
+                g2d.drawString(message, MARGIN, TOTAL_BOARD_SIZE - 10)
+            }
+        }
+    }
+    
+    /**
+     * 오픈 렌주룰 - 선택 가능한 5수 위치 표시
+     */
+    private fun drawFifthMoveOptions(g2d: Graphics2D) {
+        if (fifthMoveSelectionMode) {
+            for ((index, pos) in fifthMoveOptions.withIndex()) {
+                val x = MARGIN + pos.col * CELL_SIZE
+                val y = MARGIN + pos.row * CELL_SIZE
+                
+                // 선택 가능한 위치 강조
+                g2d.color = Color(UITheme.Colors.PRIMARY.red, UITheme.Colors.PRIMARY.green, 
+                                   UITheme.Colors.PRIMARY.blue, 100)
+                val highlightSize = STONE_SIZE + 6
+                g2d.fillOval(x - highlightSize / 2, y - highlightSize / 2, highlightSize, highlightSize)
+                
+                // 테두리
+                g2d.color = UITheme.Colors.PRIMARY
+                g2d.stroke = BasicStroke(2.5f)
+                g2d.drawOval(x - highlightSize / 2, y - highlightSize / 2, highlightSize, highlightSize)
+                
+                // 번호 표시
+                g2d.color = Color.WHITE
+                g2d.font = Font("Arial", Font.BOLD, 18)
+                val number = (index + 1).toString()
+                val fm = g2d.fontMetrics
+                val numberWidth = fm.stringWidth(number)
+                g2d.drawString(number, x - numberWidth / 2, y + fm.height / 4)
+            }
+        }
+    }
+    
+    /**
+     * 오픈 렌주룰 - 5수 제시 모드 활성화
+     */
+    fun enableFifthMoveProposalMode(callback: (List<PositionDto>) -> Unit) {
+        fifthMoveProposalMode = true
+        proposedFifthMoves.clear()
+        fifthMoveProposalCallback = callback
+        repaint()
+    }
+    
+    /**
+     * 오픈 렌주룰 - 5수 선택 모드 활성화
+     */
+    fun enableFifthMoveSelectionMode(options: List<PositionDto>, callback: (PositionDto) -> Unit) {
+        fifthMoveSelectionMode = true
+        fifthMoveOptions = options
+        fifthMoveSelectionCallback = callback
+        repaint()
+    }
+    
+    /**
+     * 오픈 렌주룰 - 제시된 5수 위치 강조
+     */
+    fun highlightFifthMoveOptions(positions: List<PositionDto>) {
+        fifthMoveOptions = positions
+        repaint()
+    }
+    
+    /**
+     * AI 사고 과정 표시
+     */
+    fun showAIThinking(thinkingInfo: AIThinkingInfoDto) {
+        aiThinkingInfo = thinkingInfo
+        repaint()
+        
+        // AI 사고 종료 시 자동 제거
+        if (thinkingInfo.thinkingProgress >= 1.0f) {
+            aiThinkingTimer?.stop()
+            aiThinkingTimer = Timer(2000) { e ->
+                aiThinkingInfo = null
+                repaint()
+                (e.source as Timer).stop()
+            }
+            aiThinkingTimer?.start()
+        }
+    }
+    
+    /**
+     * AI 사고 과정 그리기
+     */
+    private fun drawAIThinking(g2d: Graphics2D) {
+        val thinkingInfo = aiThinkingInfo ?: return
+        
+        // 상위 5개 후보만 표시
+        val topEvaluations = thinkingInfo.evaluations
+            .sortedByDescending { it.score }
+            .take(5)
+        
+        topEvaluations.forEach { eval ->
+            val x = MARGIN + eval.position.col * CELL_SIZE
+            val y = MARGIN + eval.position.row * CELL_SIZE
+            
+            // 평가 점수에 따른 색상
+            val normalizedScore = (eval.score + 100000f) / 200000f // -100000 ~ 100000 범위를 0~1로 정규화
+            val hue = normalizedScore * 120f / 360f // 빨강(0) ~ 초록(120)
+            val color = Color.getHSBColor(hue, 0.7f, 0.9f)
+            
+            // 반투명 원 그리기
+            val oldComposite = g2d.composite
+            g2d.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.4f)
+            g2d.color = color
+            val radius = 18
+            g2d.fillOval(x - radius, y - radius, radius * 2, radius * 2)
+            
+            // 테두리
+            g2d.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.8f)
+            g2d.stroke = BasicStroke(2f)
+            g2d.drawOval(x - radius, y - radius, radius * 2, radius * 2)
+            
+            // 점수 표시
+            g2d.composite = oldComposite
+            g2d.color = Color.BLACK
+            g2d.font = Font("맑은 고딕", Font.BOLD, 10)
+            val scoreText = if (eval.score > 1000) "${eval.score/1000}k" else eval.score.toString()
+            val fm = g2d.fontMetrics
+            val textWidth = fm.stringWidth(scoreText)
+            g2d.drawString(scoreText, x - textWidth/2, y + fm.height/4)
+            
+            // 이유 표시
+            if (eval.reason != null) {
+                g2d.font = Font("맑은 고딕", Font.PLAIN, 9)
+                val reasonWidth = g2d.fontMetrics.stringWidth(eval.reason)
+                g2d.color = Color(60, 60, 60)
+                g2d.drawString(eval.reason, x - reasonWidth/2, y + radius + 12)
+            }
+        }
+        
+        // 현재 최고 수 강조
+        thinkingInfo.currentBestMove?.let { bestMove ->
+            val x = MARGIN + bestMove.col * CELL_SIZE
+            val y = MARGIN + bestMove.row * CELL_SIZE
+            
+            // 깜빡이는 효과
+            val pulse = (System.currentTimeMillis() % 1000) / 1000.0
+            val alpha = 0.3f + 0.3f * Math.sin(pulse * Math.PI).toFloat()
+            
+            g2d.color = UITheme.Colors.PRIMARY
+            g2d.stroke = BasicStroke(3f)
+            val oldComposite = g2d.composite
+            g2d.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha)
+            g2d.drawOval(x - 22, y - 22, 44, 44)
+            g2d.composite = oldComposite
+        }
+        
+        // 진행 상황 표시
+        if (thinkingInfo.thinkingProgress < 1.0f) {
+            g2d.color = UITheme.Colors.GRAY_700
+            g2d.font = Font("맑은 고딕", Font.PLAIN, 12)
+            val progressText = "AI 분석 중... ${(thinkingInfo.thinkingProgress * 100).toInt()}% (노드: ${thinkingInfo.nodesEvaluated})"
+            g2d.drawString(progressText, MARGIN, TOTAL_BOARD_SIZE - 5)
+        }
+    }
+    
+    
+    // 보드 클릭 리스너 추가 (퍼즐 모드 등에서 사용)
+    private var boardClickListeners = mutableListOf<(PositionDto) -> Unit>()
+    
+    fun addBoardClickListener(listener: (PositionDto) -> Unit) {
+        boardClickListeners.add(listener)
+    }
+    
+    // 테마 변경 리스너 구현
+    override fun onThemeChanged(oldTheme: GameTheme, newTheme: GameTheme) {
+        background = newTheme.colorScheme.background
+        repaint()
+    }
+    
+    private fun getMoveNumber(position: PositionDto): Int {
+        // TODO: 실제 수순 번호를 가져오는 로직 구현
+        return 0
     }
 }

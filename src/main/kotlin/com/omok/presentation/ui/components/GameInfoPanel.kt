@@ -1,14 +1,15 @@
 package com.omok.presentation.ui.components
 
 import com.omok.presentation.ui.theme.UITheme
+import com.omok.presentation.ui.icons.IconLoader
 import java.awt.*
 import javax.swing.*
 import javax.swing.border.EmptyBorder
 
 class GameInfoPanel : JPanel() {
-    private val moveCountLabel = InfoCard("수", "0", "●")
-    private val timeLabel = InfoCard("시간", "00:00", "■")
-    private val capturedLabel = InfoCard("포획", "0", "☆")
+    private val moveCountLabel = InfoCard("수", "0", IconLoader.Icon.MOVE_COUNT)
+    private val timeLabel = InfoCard("시간", "00:00", IconLoader.Icon.TIMER)
+    private val capturedLabel = InfoCard("포획", "0", IconLoader.Icon.FORBIDDEN)
     
     private var startTime = System.currentTimeMillis()
     private val timer = Timer(1000) { updateTime() }
@@ -55,7 +56,7 @@ class GameInfoPanel : JPanel() {
         timeLabel.setValue(String.format("%02d:%02d", minutes, seconds))
     }
     
-    private class InfoCard(title: String, initialValue: String, icon: String) : JPanel() {
+    private class InfoCard(title: String, initialValue: String, icon: IconLoader.Icon) : JPanel() {
         private val valueLabel = JLabel(initialValue)
         
         init {
@@ -70,9 +71,8 @@ class GameInfoPanel : JPanel() {
             val topPanel = JPanel(FlowLayout(FlowLayout.LEFT, UITheme.Spacing.XS, 0))
             topPanel.background = UITheme.Colors.SURFACE
             
-            val iconLabel = JLabel(icon)
-            iconLabel.font = UITheme.Fonts.BODY
-            iconLabel.foreground = UITheme.Colors.PRIMARY
+            val iconLabel = JLabel()
+            iconLabel.icon = IconLoader.getIcon(icon, 16, 16)
             topPanel.add(iconLabel)
             
             val titleLabel = JLabel(title)

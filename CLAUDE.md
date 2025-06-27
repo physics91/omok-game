@@ -3,13 +3,20 @@
 ## 프로젝트 개요
 렌주룰 오목 게임 - Clean Architecture 기반 Kotlin + Swing 데스크톱 게임 애플리케이션
 
+**📋 현재 상태**: UI 간소화 및 모듈화 완료 (2024.12)
+- 불필요한 UI 컴포넌트 제거로 깔끔한 인터페이스 구현
+- 통합 다이얼로그 시스템으로 일관된 사용자 경험 제공
+- Clean Architecture 원칙 준수를 위한 모듈화 구조 개선
+
 ### 기술 스택
 - **언어**: Kotlin 1.9.0
-- **UI 프레임워크**: Java Swing
+- **UI 프레임워크**: Java Swing + 커스텀 컴포넌트
 - **빌드 도구**: Gradle Kotlin DSL
 - **Java 버전**: 17
 - **비동기 처리**: Kotlin Coroutines
 - **테스트**: JUnit 5, Mockito
+- **아키텍처**: Clean Architecture + Hexagonal Architecture
+- **UI 패턴**: 통합 다이얼로그 시스템, 컴포넌트 기반 설계
 
 ## 아키텍처 구조
 
@@ -17,39 +24,59 @@
 
 ```
 src/main/kotlin/com/omok/
-├── domain/                 # 도메인 계층 (핵심 비즈니스 로직)
-│   ├── model/             # 도메인 모델
-│   │   ├── Game.kt        # 게임 애그리거트 루트
-│   │   ├── Board.kt       # 불변 게임 보드
-│   │   ├── Player.kt      # 플레이어 열거형
-│   │   ├── Move.kt        # 수 데이터 클래스
-│   │   └── GameState.kt   # 게임 상태 모델
-│   ├── service/           # 도메인 서비스
-│   │   ├── GameEngine.kt  # 게임 로직 엔진
-│   │   ├── RuleValidator.kt # 렌주룰 검증
-│   │   └── AIStrategy.kt  # AI 전략 인터페이스
-│   └── event/             # 도메인 이벤트
-│       └── GameEvent.kt   # 게임 이벤트 시스템
-├── application/           # 애플리케이션 계층
-│   ├── usecase/          # 유스케이스 (애플리케이션 서비스)
+├── domain/                     # 도메인 계층 (핵심 비즈니스 로직)
+│   ├── model/                 # 도메인 모델
+│   │   ├── Game.kt            # 게임 애그리거트 루트
+│   │   ├── Board.kt           # 불변 게임 보드
+│   │   ├── Player.kt          # 플레이어 열거형
+│   │   ├── Move.kt            # 수 데이터 클래스
+│   │   └── GameState.kt       # 게임 상태 모델
+│   ├── service/               # 도메인 서비스
+│   │   ├── GameEngine.kt      # 게임 로직 엔진 (DI 적용)
+│   │   ├── RuleValidator.kt   # 렌주룰 검증
+│   │   └── AIStrategy.kt      # AI 전략 인터페이스
+│   ├── logging/               # 🆕 도메인 로깅 추상화
+│   │   └── DomainLogger.kt    # 로깅 인터페이스 (의존성 역전)
+│   ├── achievement/           # 성취도 시스템
+│   └── event/                 # 도메인 이벤트
+│       └── GameEvent.kt       # 게임 이벤트 시스템
+├── application/               # 애플리케이션 계층
+│   ├── usecase/              # 유스케이스 (애플리케이션 서비스)
 │   │   ├── StartGameUseCase.kt
 │   │   ├── MakeMoveUseCase.kt
 │   │   ├── UndoMoveUseCase.kt
 │   │   └── ProcessAIMoveUseCase.kt
-│   └── service/          # 애플리케이션 서비스
+│   ├── ui/                   # 🆕 UI 추상화 인터페이스
+│   │   └── DialogService.kt   # 다이얼로그 서비스 인터페이스
+│   └── service/              # 애플리케이션 서비스
 │       └── GameApplicationService.kt
-├── infrastructure/        # 인프라 계층
-│   ├── ai/               # AI 구현체
-│   │   └── MinimaxAI.kt  # 미니맥스 AI 구현
-│   └── DependencyContainer.kt # 의존성 주입 컨테이너
-└── presentation/         # 프레젠테이션 계층
-    ├── ui/               # UI 컴포넌트
-    │   ├── GameWindow.kt # 메인 윈도우
-    │   └── GameBoardPanel.kt # 게임 보드 패널
-    ├── controller/       # 프레젠테이션 컨트롤러
+├── infrastructure/            # 인프라 계층
+│   ├── ai/                   # AI 구현체
+│   │   ├── MinimaxAI.kt      # 미니맥스 AI 구현
+│   │   └── EnhancedAI.kt     # 고급 AI 구현
+│   ├── logging/              # 🆕 로깅 구현체
+│   │   ├── Logger.kt         # 파일/콘솔 로거
+│   │   └── DomainLoggerImpl.kt # 도메인 로거 구현체
+│   ├── ui/                   # 🆕 UI 서비스 구현체
+│   │   └── SwingDialogService.kt # Swing 다이얼로그 구현
+│   └── DependencyContainer.kt # 의존성 주입 컨테이너 (DI 강화)
+└── presentation/             # 프레젠테이션 계층
+    ├── ui/                   # UI 컴포넌트 (간소화됨)
+    │   ├── GameWindow.kt     # 🔄 간소화된 메인 윈도우
+    │   ├── GameBoardPanel.kt # 게임 보드 패널
+    │   ├── components/       # 🆕 통합 UI 컴포넌트
+    │   │   ├── UnifiedDialog.kt      # 통합 다이얼로그 시스템
+    │   │   ├── SimplifiedMenuBar.kt  # 간소화된 메뉴바
+    │   │   └── ModernButton.kt       # 모던 버튼 컴포넌트
+    │   └── dialogs/          # 특화된 다이얼로그들
+    │       ├── GameSelectionDialog.kt # 🔄 간소화된 게임 선택
+    │       └── SettingsDialog.kt     # 설정 다이얼로그
+    ├── controller/           # 프레젠테이션 컨트롤러
     │   └── GameController.kt
-    └── Main.kt           # 애플리케이션 진입점
+    └── Main.kt              # 애플리케이션 진입점
 ```
+
+**🔄 = 간소화됨, 🆕 = 새로 추가됨**
 
 ### 레이어별 책임
 
@@ -90,11 +117,22 @@ src/main/kotlin/com/omok/
 
 #### 4. **Presentation Layer** (프레젠테이션 계층) - 사용자 인터페이스
 **책임사항:**
-- 사용자 인터페이스 제공
+- 간소화된 사용자 인터페이스 제공
 - 사용자 입력을 애플리케이션 계층으로 전달
 - 도메인 이벤트 구독 및 UI 업데이트
+- 통합 다이얼로그 시스템을 통한 일관된 사용자 경험
+
+**🆕 주요 개선사항:**
+- **UI 간소화**: 불필요한 컴포넌트 제거로 깔끔한 인터페이스 구현
+  - GameHeader, 개별 버튼 패널 제거
+  - SimplifiedMenuBar로 기능 재구성
+- **통합 다이얼로그**: UnifiedDialog 시스템으로 모든 팝업 표준화
+  - 일관된 디자인과 키보드 단축키 지원
+  - 페이드 인 애니메이션 효과 추가
+- **컴포넌트 모듈화**: 재사용 가능한 UI 컴포넌트 분리
 
 **특징:**
+- 메뉴 기반 네비게이션으로 UI 복잡도 감소
 - 이벤트 기반 UI 업데이트
 - 도메인 모델을 직접 조작하지 않음
 - View와 Controller 분리
@@ -166,6 +204,122 @@ companion object {
     const val CELL_SIZE = 40
 }
 ```
+
+## 🆕 UI 시스템 & 모듈화 개선사항 (2024.12 업데이트)
+
+### 1. **통합 다이얼로그 시스템 (UnifiedDialog)**
+
+#### 개념
+모든 팝업 다이얼로그를 표준화하여 일관된 사용자 경험 제공
+
+#### 주요 기능
+```kotlin
+// 정보 다이얼로그
+UnifiedDialog.showInfo(parent, "제목", "메시지")
+
+// 확인 다이얼로그
+val result = UnifiedDialog.showConfirm(parent, "확인", "정말 삭제하시겠습니까?")
+if (result == DialogResult.CONFIRMED) {
+    // 확인된 경우 처리
+}
+
+// 선택 다이얼로그
+val (result, selected) = UnifiedDialog.showSelection(
+    parent, "선택", "옵션을 선택하세요", 
+    arrayOf("옵션1", "옵션2", "옵션3")
+)
+
+// 입력 다이얼로그
+val (result, input) = UnifiedDialog.showInput(parent, "입력", "이름을 입력하세요")
+```
+
+#### 장점
+- **일관성**: 모든 다이얼로그가 동일한 디자인과 동작
+- **접근성**: ESC/Enter 키보드 단축키 지원
+- **UX**: 페이드 인 애니메이션으로 부드러운 전환
+- **확장성**: 새로운 다이얼로그 타입 쉽게 추가 가능
+
+### 2. **간소화된 UI 구조**
+
+#### 이전 구조 (복잡함)
+```
+GameWindow
+├── GameHeader (제거됨)
+├── GameBoard
+├── ButtonPanel (제거됨)
+│   ├── UndoButton
+│   ├── NewGameButton
+│   └── SettingsButton
+└── StatusPanel
+```
+
+#### 🔄 현재 구조 (간소화됨)
+```
+GameWindow
+├── SimplifiedMenuBar (새로 추가)
+│   ├── 게임 메뉴 (새 게임, 무르기, 저장/불러오기)
+│   ├── 도구 메뉴 (설정, 테마, 고급 기능)
+│   └── 도움말 메뉴 (통계, 성취도, 규칙)
+├── GameBoard (핵심 유지)
+├── GameInfoPanel (핵심 유지)
+├── GameTimer (핵심 유지)
+├── GameReplayPanel (핵심 유지)
+└── StatusPanel (핵심 유지)
+```
+
+#### 장점
+- **간결성**: 불필요한 버튼과 패널 제거
+- **접근성**: 메뉴 기반 네비게이션으로 키보드 친화적
+- **공간 효율성**: 더 넓은 게임 영역 확보
+- **논리적 그룹화**: 관련 기능들이 메뉴별로 체계적 구성
+
+### 3. **모듈화 및 의존성 역전 개선**
+
+#### 🆕 도메인 로깅 추상화
+```kotlin
+// 도메인 계층 - 인터페이스 정의
+interface DomainLogger {
+    fun debug(message: String)
+    fun info(message: String)
+    fun warn(message: String, throwable: Throwable? = null)
+    fun error(message: String, throwable: Throwable? = null)
+}
+
+// 인프라 계층 - 구현체
+class DomainLoggerImpl(private val logger: Logger) : DomainLogger {
+    override fun info(message: String) {
+        logger.info("Domain", message)
+    }
+}
+
+// 도메인 서비스 - 의존성 주입
+class GameEngine(
+    private val ruleValidator: RuleValidator,
+    private val aiStrategy: AIStrategy?,
+    private val logger: DomainLogger = NoOpLogger  // 기본값으로 NoOp 제공
+)
+```
+
+#### 🆕 UI 서비스 추상화
+```kotlin
+// 애플리케이션 계층 - 인터페이스 정의
+interface DialogService {
+    fun showInfo(title: String, message: String): DialogResult
+    fun showConfirm(title: String, message: String): DialogResult
+}
+
+// 인프라 계층 - Swing 구현체
+class SwingDialogService(private val parentWindow: Window?) : DialogService {
+    override fun showInfo(title: String, message: String): DialogResult {
+        return mapResult(UnifiedDialog.showInfo(parentWindow, title, message))
+    }
+}
+```
+
+#### 아키텍처 무결성 확보
+- ✅ **의존성 규칙 준수**: 도메인 → 인프라 의존성 제거
+- ✅ **인터페이스 분리**: 각 계층의 관심사별 인터페이스 분리
+- ✅ **의존성 주입**: DependencyContainer를 통한 체계적 DI
 
 ## Clean Architecture 핵심 개념
 
@@ -241,6 +395,50 @@ class SaveGameUseCase(
     fun execute(game: Game, filename: String): SaveResult {
         // 게임 저장 로직
     }
+}
+```
+
+#### 🆕 새로운 다이얼로그 추가:
+```kotlin
+// presentation/ui/dialogs/에 새로운 다이얼로그 추가
+class CustomDialog(parent: Frame) : JDialog(parent, "제목", true) {
+    
+    fun showDialog(): DialogResult {
+        // UnifiedDialog 패턴 활용
+        val content = createContent()
+        val config = DialogConfig(
+            title = "커스텀 다이얼로그",
+            content = content,
+            buttons = listOf(
+                ButtonConfig("확인", ModernButton.ButtonStyle.PRIMARY, DialogResult.CONFIRMED),
+                ButtonConfig("취소", ModernButton.ButtonStyle.GHOST, DialogResult.CANCELLED)
+            ),
+            headerContent = DialogHeader("제목", icon = customIcon)
+        )
+        
+        return UnifiedDialog.showCustom(parent, config).apply { 
+            isVisible = true 
+        }.getResult()
+    }
+}
+```
+
+#### 🆕 메뉴 기능 추가:
+```kotlin
+// SimplifiedMenuBar에 새로운 메뉴 아이템 추가
+private fun createToolsMenu(): JMenu {
+    val menu = JMenu("도구")
+    
+    // 기존 메뉴 아이템들...
+    
+    // 새로운 기능 추가
+    val newFeatureItem = JMenuItem("새로운 기능")
+    newFeatureItem.icon = IconLoader.getIcon(IconLoader.Icon.CUSTOM, 16, 16)
+    newFeatureItem.accelerator = KeyStroke.getKeyStroke("ctrl F")
+    newFeatureItem.addActionListener { gameWindow.showNewFeatureDialog() }
+    
+    menu.add(newFeatureItem)
+    return menu
 }
 ```
 
@@ -450,3 +648,74 @@ docs: 아키텍처 가이드 업데이트
 - Hexagonal Architecture (Alistair Cockburn)  
 - Domain Driven Design (Eric Evans)
 - Kotlin Coroutines 공식 문서
+
+## 업데이트 히스토리
+
+### 2024.12 - UI 단순화 및 모듈화 강화
+
+#### 주요 변경사항:
+1. **불필요한 UI 컴포넌트 제거**
+   - GameHeader, undoButton, newGameButton, settingsButton 제거
+   - 복잡한 버튼 패널 구조 단순화
+   - 메뉴 기반 인터페이스로 통합
+
+2. **팝업 UI/UX 통합 및 강화**
+   - UnifiedDialog 시스템 도입으로 모든 다이얼로그 표준화
+   - 페이드인 애니메이션 효과 추가
+   - 일관된 디자인 및 사용자 경험 제공
+
+3. **Clean Architecture 모듈화 개선**
+   - DomainLogger 인터페이스로 의존성 역전 구현
+   - DialogService 추상화로 UI 계층 분리
+   - 아키텍처 위반 요소 제거 및 계층 간 의존성 명확화
+
+#### 기술적 세부사항:
+
+**UnifiedDialog 시스템:**
+```kotlin
+// 모든 다이얼로그를 통합하는 단일 인터페이스
+UnifiedDialog.showInfo(parent, "게임 시작", "새 게임이 시작됩니다")
+UnifiedDialog.showConfirm(parent, "확인", "정말 종료하시겠습니까?")
+UnifiedDialog.showSelection(parent, "난이도 선택", "AI 난이도를 선택하세요", options)
+```
+
+**의존성 역전 구현:**
+```kotlin
+// Domain Layer Interface
+interface DomainLogger {
+    fun info(message: String)
+    fun debug(message: String)
+    fun warn(message: String, throwable: Throwable? = null)
+    fun error(message: String, throwable: Throwable? = null)
+}
+
+// Infrastructure Layer Implementation
+class DomainLoggerImpl(private val logger: Logger) : DomainLogger
+```
+
+**UI 서비스 추상화:**
+```kotlin
+// Application Layer Interface
+interface DialogService {
+    fun showInfo(title: String, message: String): DialogResult
+    fun showConfirm(title: String, message: String): DialogResult
+}
+
+// Infrastructure Layer Implementation
+class SwingDialogService : DialogService
+```
+
+#### 아키텍처 개선 효과:
+- **의존성 위반 제거**: Domain → Infrastructure 의존성 완전 제거
+- **UI 일관성 향상**: 모든 다이얼로그가 동일한 디자인 패턴 사용
+- **개발 효율성 증대**: 새로운 다이얼로그 추가 시 UnifiedDialog 활용
+- **테스트 용이성**: DialogService 인터페이스를 통한 Mock 테스트 가능
+- **코드 품질 향상**: 중복 코드 제거 및 단일 책임 원칙 준수
+
+#### 새로운 개발 워크플로우:
+1. **다이얼로그 추가 시**: UnifiedDialog의 표준 메서드 사용
+2. **도메인 로깅**: DomainLogger 인터페이스를 통한 계층 분리 로깅
+3. **UI 테스트**: DialogService Mock을 활용한 단위 테스트
+4. **메뉴 기반 네비게이션**: SimplifiedMenuBar를 통한 기능 접근
+
+이러한 개선을 통해 더욱 견고하고 유지보수하기 쉬운 Clean Architecture가 완성되었습니다.

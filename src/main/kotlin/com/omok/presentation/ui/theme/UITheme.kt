@@ -7,6 +7,19 @@ import javax.swing.BorderFactory
 import javax.swing.border.Border
 
 object UITheme {
+    
+    enum class ThemeMode {
+        LIGHT, DARK
+    }
+    
+    private var currentTheme = ThemeMode.LIGHT
+    
+    fun setTheme(theme: ThemeMode) {
+        currentTheme = theme
+    }
+    
+    fun getCurrentTheme(): ThemeMode = currentTheme
+    
     object Colors {
         val PRIMARY = Color(99, 102, 241)
         val PRIMARY_DARK = Color(79, 70, 229)
@@ -35,13 +48,48 @@ object UITheme {
         val GRAY_100 = Color(243, 244, 246)
         val GRAY_50 = Color(249, 250, 251)
         
-        val BACKGROUND = Color(255, 255, 255)
-        val SURFACE = Color(249, 250, 251)
-        val SURFACE_DARK = Color(243, 244, 246)
+        // 라이트 모드 색상
+        private val LIGHT_BACKGROUND = Color(255, 255, 255)
+        private val LIGHT_SURFACE = Color(249, 250, 251)
+        private val LIGHT_SURFACE_DARK = Color(243, 244, 246)
+        private val LIGHT_TEXT_PRIMARY = Color(17, 24, 39)
+        private val LIGHT_TEXT_SECONDARY = Color(75, 85, 99)
         
-        val BOARD_BACKGROUND = Color(220, 179, 92)  // 나무색
-        val BOARD_LINE = Color(0, 0, 0)  // 검은색 선
-        val BOARD_LINE_LIGHT = Color(0, 0, 0, 50)  // 연한 검은색
+        // 다크 모드 색상
+        private val DARK_BACKGROUND = Color(17, 24, 39)
+        private val DARK_SURFACE = Color(31, 41, 55)
+        private val DARK_SURFACE_DARK = Color(55, 65, 81)
+        private val DARK_TEXT_PRIMARY = Color(249, 250, 251)
+        private val DARK_TEXT_SECONDARY = Color(156, 163, 175)
+        
+        // 동적 색상 속성
+        val BACKGROUND: Color
+            get() = if (currentTheme == ThemeMode.DARK) DARK_BACKGROUND else LIGHT_BACKGROUND
+            
+        val SURFACE: Color
+            get() = if (currentTheme == ThemeMode.DARK) DARK_SURFACE else LIGHT_SURFACE
+            
+        val SURFACE_DARK: Color
+            get() = if (currentTheme == ThemeMode.DARK) DARK_SURFACE_DARK else LIGHT_SURFACE_DARK
+            
+        val TEXT_PRIMARY: Color
+            get() = if (currentTheme == ThemeMode.DARK) DARK_TEXT_PRIMARY else LIGHT_TEXT_PRIMARY
+            
+        val TEXT_SECONDARY: Color
+            get() = if (currentTheme == ThemeMode.DARK) DARK_TEXT_SECONDARY else LIGHT_TEXT_SECONDARY
+        
+        // 보드 색상 (라이트/다크 모드)
+        private val LIGHT_BOARD_BACKGROUND = Color(220, 179, 92)  // 나무색
+        private val DARK_BOARD_BACKGROUND = Color(42, 35, 25)     // 어두운 나무색
+        
+        val BOARD_BACKGROUND: Color
+            get() = if (currentTheme == ThemeMode.DARK) DARK_BOARD_BACKGROUND else LIGHT_BOARD_BACKGROUND
+            
+        val BOARD_LINE: Color
+            get() = if (currentTheme == ThemeMode.DARK) Color(180, 180, 180) else Color(0, 0, 0)
+            
+        val BOARD_LINE_LIGHT: Color
+            get() = if (currentTheme == ThemeMode.DARK) Color(180, 180, 180, 50) else Color(0, 0, 0, 50)
         
         val BLACK_STONE = Color(24, 24, 27)
         val BLACK_STONE_HIGHLIGHT = Color(39, 39, 42)
@@ -56,6 +104,7 @@ object UITheme {
         val LAST_MOVE_INDICATOR = Color(99, 102, 241)
         val SHADOW = Color(0, 0, 0, 20)
         val SHADOW_DARK = Color(0, 0, 0, 40)
+        val ERROR = Color(239, 68, 68)
     }
     
     object Fonts {
@@ -80,6 +129,7 @@ object UITheme {
         val BUTTON = Font(SYSTEM_FONT, Font.BOLD, 16)
         val LABEL = Font(SYSTEM_FONT, Font.PLAIN, 14)
         val CAPTION = Font(SYSTEM_FONT, Font.PLAIN, 13)
+        val CAPTION_BOLD = Font(SYSTEM_FONT, Font.BOLD, 13)
     }
     
     object Spacing {

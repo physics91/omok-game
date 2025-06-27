@@ -41,6 +41,62 @@ object KeyboardShortcuts {
             }
         })
         
+        // Save - Ctrl+S
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_S, KeyEvent.CTRL_DOWN_MASK), "save")
+        actionMap.put("save", object : AbstractAction() {
+            override fun actionPerformed(e: ActionEvent) {
+                actions.onSave()
+            }
+        })
+        
+        // Export SGF - Ctrl+E
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_E, KeyEvent.CTRL_DOWN_MASK), "exportSGF")
+        actionMap.put("exportSGF", object : AbstractAction() {
+            override fun actionPerformed(e: ActionEvent) {
+                actions.onExportSGF()
+            }
+        })
+        
+        // Replay Mode - Ctrl+R
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_R, KeyEvent.CTRL_DOWN_MASK), "replayMode")
+        actionMap.put("replayMode", object : AbstractAction() {
+            override fun actionPerformed(e: ActionEvent) {
+                actions.onToggleReplayMode()
+            }
+        })
+        
+        // Load - Ctrl+O
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_O, KeyEvent.CTRL_DOWN_MASK), "load")
+        actionMap.put("load", object : AbstractAction() {
+            override fun actionPerformed(e: ActionEvent) {
+                actions.onLoad()
+            }
+        })
+        
+        // Toggle Move Numbers - M
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_M, 0), "toggleMoveNumbers")
+        actionMap.put("toggleMoveNumbers", object : AbstractAction() {
+            override fun actionPerformed(e: ActionEvent) {
+                actions.onToggleMoveNumbers()
+            }
+        })
+        
+        // Toggle Dark Mode - D
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_D, 0), "toggleDarkMode")
+        actionMap.put("toggleDarkMode", object : AbstractAction() {
+            override fun actionPerformed(e: ActionEvent) {
+                actions.onToggleDarkMode()
+            }
+        })
+        
+        // Toggle Sound - S
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_S, 0), "toggleSound")
+        actionMap.put("toggleSound", object : AbstractAction() {
+            override fun actionPerformed(e: ActionEvent) {
+                actions.onToggleSound()
+            }
+        })
+        
         // Quit - Ctrl+Q
         inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_Q, KeyEvent.CTRL_DOWN_MASK), "quit")
         actionMap.put("quit", object : AbstractAction() {
@@ -102,6 +158,13 @@ object KeyboardShortcuts {
         fun onUndo()
         fun onHelp()
         fun onSettings()
+        fun onSave()
+        fun onLoad()
+        fun onExportSGF()
+        fun onToggleReplayMode()
+        fun onToggleMoveNumbers()
+        fun onToggleDarkMode()
+        fun onToggleSound()
         fun onQuit()
         fun onNavigate(direction: Direction)
         fun onPlaceStone()

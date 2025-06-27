@@ -89,15 +89,17 @@ object GameMapper {
         return GameSettingsDto(
             mode = toDto(gameSettings.mode),
             aiDifficulty = gameSettings.aiDifficulty?.let { toDto(it) },
-            gameRule = toDto(gameSettings.gameRule)
+            gameRule = toDto(gameSettings.gameRule),
+            timeLimit = toDto(gameSettings.timeLimit)
         )
     }
-    
+
     fun toDomain(gameSettingsDto: GameSettingsDto): GameSettings {
         return GameSettings(
             mode = toDomain(gameSettingsDto.mode),
             aiDifficulty = gameSettingsDto.aiDifficulty?.let { toDomain(it) },
-            gameRule = toDomain(gameSettingsDto.gameRule)
+            gameRule = toDomain(gameSettingsDto.gameRule),
+            timeLimit = toDomain(gameSettingsDto.timeLimit)
         )
     }
     
@@ -127,7 +129,63 @@ object GameMapper {
                 winningLine = gameState.winningLine.map { toDto(it) }
             )
             is GameState.Draw -> GameStateDto.Draw
+            // 오픈 렌주룰 특수 상태는 모두 Playing으로 매핑 (UI에서 별도 처리)
+            is GameState.WaitingForSwap -> GameStateDto.Playing
+            is GameState.WaitingForFifthMove -> GameStateDto.Playing
+            is GameState.WaitingForFifthMoveSelection -> GameStateDto.Playing
         }
+    }
+    
+    fun toDto(timeLimit: TimeLimit): TimeLimitDto {
+        return TimeLimitDto(
+            totalTimePerPlayer = timeLimit.totalTimePerPlayer,
+            incrementPerMove = timeLimit.incrementPerMove,
+            mode = toDto(timeLimit.mode)
+        )
+    }
+    
+    fun toDomain(timeLimitDto: TimeLimitDto): TimeLimit {
+        return TimeLimit(
+            totalTimePerPlayer = timeLimitDto.totalTimePerPlayer,
+            incrementPerMove = timeLimitDto.incrementPerMove,
+            mode = toDomain(timeLimitDto.mode)
+        )
+    }
+    
+    fun toDto(mode: TimeLimitMode): TimeLimitModeDto {
+        return when (mode) {
+            TimeLimitMode.NONE -> TimeLimitModeDto.NONE
+            TimeLimitMode.TOTAL_TIME -> TimeLimitModeDto.TOTAL_TIME
+            TimeLimitMode.FISCHER -> TimeLimitModeDto.FISCHER
+            TimeLimitMode.BYOYOMI -> TimeLimitModeDto.BYOYOMI
+        }
+    }
+    
+    fun toDomain(modeDto: TimeLimitModeDto): TimeLimitMode {
+        return when (modeDto) {
+            TimeLimitModeDto.NONE -> TimeLimitMode.NONE
+            TimeLimitModeDto.TOTAL_TIME -> TimeLimitMode.TOTAL_TIME
+            TimeLimitModeDto.FISCHER -> TimeLimitMode.FISCHER
+            TimeLimitModeDto.BYOYOMI -> TimeLimitMode.BYOYOMI
+        }
+    }
+    
+    fun toDto(playerTimeState: PlayerTimeState): PlayerTimeStateDto {
+        return PlayerTimeStateDto(
+            remainingTime = playerTimeState.remainingTime,
+            byoyomiTime = playerTimeState.byoyomiTime,
+            byoyomiPeriods = playerTimeState.byoyomiPeriods,
+            isInByoyomi = playerTimeState.isInByoyomi
+        )
+    }
+    
+    fun toDto(gameTimeState: GameTimeState): GameTimeStateDto {
+        return GameTimeStateDto(
+            timeLimit = toDto(gameTimeState.timeLimit),
+            blackTimeState = toDto(gameTimeState.blackTimeState),
+            whiteTimeState = toDto(gameTimeState.whiteTimeState),
+            isTimerRunning = gameTimeState.isTimerRunning
+        )
     }
     
     fun toDto(game: Game): GameDto {
@@ -138,7 +196,67 @@ object GameMapper {
             moveHistory = game.getMoveHistory().map { toDto(it) },
             settings = toDto(game.getSettings()),
             isPlayerTurn = game.isPlayerTurn(),
-            isAITurn = game.isAITurn()
+            isAITurn = game.isAITurn(),
+            timeState = game.getTimeState()?.let { toDto(it) },
+            mode = toDto(game.getSettings().mode) // Add this line
         )
+    }
+    
+    fun toDto(evaluation: AIEvaluation): AIEvaluationDto {
+        return AIEvaluationDto(
+            position = toDto(evaluation.position),
+            score = evaluation.score,
+            depth = evaluation.depth,
+            isCandidate = evaluation.isCandidate,
+            reason = evaluation.reason
+        )
+    }
+    
+    fun toDto(thinkingInfo: AIThinkingInfo): AIThinkingInfoDto {
+        return AIThinkingInfoDto(
+            evaluations = thinkingInfo.evaluations.map { toDto(it) },
+            currentBestMove = thinkingInfo.currentBestMove?.let { toDto(it) },
+            thinkingProgress = thinkingInfo.thinkingProgress,
+            nodesEvaluated = thinkingInfo.nodesEvaluated,
+            currentDepth = thinkingInfo.currentDepth
+        )
+    }
+    
+    fun toDomain(moveDto: MoveDto): Move {
+        return Move(
+            position = toDomain(moveDto.position),
+            player = toDomain(moveDto.player),
+            moveNumber = moveDto.moveNumber
+        )
+    }
+    
+    /**
+     * GameDto를 Game 도메인 모델로 변환
+     * SGF 내보내기를 위해 사용
+     */
+    fun toDomain(gameDto: GameDto): Game {
+        // 게임 설정으로 새 게임 생성
+        val settings = toDomain(gameDto.settings)
+        var game = Game(settings)
+        
+        // 수순 재생
+        for (moveDto in gameDto.moveHistory) {
+            val move = toDomain(moveDto)
+            game = game.makeMove(move.position)
+        }
+        
+        // 게임 상태 업데이트
+        val domainState = when (gameDto.state) {
+            is GameStateDto.Won -> GameState.Won(
+                winner = toDomain(gameDto.state.winner),
+                winningLine = gameDto.state.winningLine.map { toDomain(it) }
+            )
+            is GameStateDto.Draw -> GameState.Draw
+            is GameStateDto.Playing -> GameState.Playing
+        }
+        
+        game = game.updateState(domainState)
+        
+        return game
     }
 }

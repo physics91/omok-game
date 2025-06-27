@@ -1,0 +1,103 @@
+2025-06-26 21:27:57.153 [INFO] [main] [Logger] Logging system initialized
+2025-06-26 21:27:57.154 [INFO] [main] [Logger] Log level set to INFO
+2025-06-26 21:27:57.162 [INFO] [main] [ExceptionHandler] Global exception handler initialized
+2025-06-26 21:27:57.162 [INFO] [main] [Application] Starting Omok Game Application
+2025-06-26 21:27:57.328 [INFO] [AWT-EventQueue-0] [Application] UI Theme applied
+2025-06-26 21:27:58.272 [INFO] [AWT-EventQueue-0] [Application] Splash screen shown
+2025-06-26 21:27:59.773 [INFO] [AWT-EventQueue-0] [Application] Initializing game components
+2025-06-26 21:28:00.117 [INFO] [AWT-EventQueue-0] [Application] Game components initialized successfully
+2025-06-26 21:28:01.151 [INFO] [AWT-EventQueue-0] [Application] Main window displayed
+2025-06-26 21:29:19.466 [INFO] [AWT-EventQueue-0] [ThemeManager] Theme changed to: 다크 모드
+2025-06-26 21:29:32.091 [INFO] [AWT-EventQueue-0] [GameController] Starting new game - Mode: PLAYER_VS_AI, Difficulty: HARD, Rule: 표준 렌주룰
+2025-06-26 21:29:32.096 [INFO] [AWT-EventQueue-0] [GameController] Game rule set to: 표준 렌주룰
+2025-06-26 21:29:32.096 [INFO] [AWT-EventQueue-0] [GameController] Created new GameApplicationService with difficulty: HARD
+2025-06-26 21:29:32.101 [INFO] [AWT-EventQueue-0] [AutoSaveService] Auto-save stopped
+2025-06-26 21:29:32.106 [INFO] [AWT-EventQueue-0] [AutoSaveService] Auto-save started with 30s interval
+2025-06-26 21:29:32.107 [INFO] [AWT-EventQueue-0] [GameController] Game started successfully
+2025-06-26 21:29:32.205 [INFO] [DefaultDispatcher-worker-1] [FileAchievementRepository] Achievement progress saved successfully
+2025-06-26 21:29:32.213 [INFO] [DefaultDispatcher-worker-1] [FileAchievementRepository] Player stats saved successfully
+2025-06-26 21:29:32.227 [INFO] [DefaultDispatcher-worker-1] [FileAchievementRepository] Achievement progress saved successfully
+2025-06-26 21:29:32.229 [INFO] [DefaultDispatcher-worker-1] [FileAchievementRepository] Player stats saved successfully
+2025-06-26 21:29:32.429 [INFO] [Thread-4] [AdvancedSoundEffects] Sound preloading complete
+2025-06-26 21:29:35.289 [INFO] [AWT-EventQueue-0] [GameController] Making move at position: (7, 7)
+2025-06-26 21:29:35.295 [INFO] [AWT-EventQueue-0] [Domain] GameEngine: Move processed successfully: Player=BLACK, Position=(7, 7), NewState=com.omok.domain.model.GameState$Playing@21ebe295
+2025-06-26 21:29:35.298 [INFO] [AWT-EventQueue-0] [GameController] Move successful
+2025-06-26 21:29:35.302 [INFO] [DefaultDispatcher-worker-1] [ProcessAIMoveUseCase] Processing AI move in state: com.omok.domain.model.GameState$Playing@21ebe295
+2025-06-26 21:29:36.817 [INFO] [DefaultDispatcher-worker-1] [Domain] GameEngine: Processing AI move for player: WHITE, state: com.omok.domain.model.GameState$Playing@21ebe295
+2025-06-26 21:29:36.823 [INFO] [DefaultDispatcher-worker-1] [Domain] GameEngine: AI found move in 3ms: Position=(6, 7)
+2025-06-26 21:29:36.823 [INFO] [DefaultDispatcher-worker-1] [Domain] GameEngine: Move processed successfully: Player=WHITE, Position=(6, 7), NewState=com.omok.domain.model.GameState$Playing@21ebe295
+2025-06-26 21:29:40.788 [INFO] [AWT-EventQueue-0] [GameController] Making move at position: (6, 9)
+2025-06-26 21:29:40.788 [INFO] [AWT-EventQueue-0] [Domain] GameEngine: Move processed successfully: Player=BLACK, Position=(6, 9), NewState=com.omok.domain.model.GameState$Playing@21ebe295
+2025-06-26 21:29:40.788 [INFO] [AWT-EventQueue-0] [GameController] Move successful
+2025-06-26 21:29:40.789 [INFO] [DefaultDispatcher-worker-1] [ProcessAIMoveUseCase] Processing AI move in state: com.omok.domain.model.GameState$Playing@21ebe295
+2025-06-26 21:29:42.290 [INFO] [DefaultDispatcher-worker-1] [Domain] GameEngine: Processing AI move for player: WHITE, state: com.omok.domain.model.GameState$Playing@21ebe295
+2025-06-26 21:30:02.128 [INFO] [Timer-0] [AutoSaveService] Game auto-saved to: autosave_20250626_213002.omok
+2025-06-26 21:30:03.103 [INFO] [DefaultDispatcher-worker-1] [EnhancedAI] Best move: Position(row=7, col=5), thinking time: 20811ms
+2025-06-26 21:30:03.103 [INFO] [DefaultDispatcher-worker-1] [Domain] GameEngine: AI found move in 20813ms: Position=(7, 5)
+2025-06-26 21:30:03.103 [INFO] [DefaultDispatcher-worker-1] [Domain] GameEngine: Move processed successfully: Player=WHITE, Position=(7, 5), NewState=com.omok.domain.model.GameState$Playing@21ebe295
+2025-06-26 21:30:11.763 [INFO] [AWT-EventQueue-0] [GameController] Making move at position: (5, 8)
+2025-06-26 21:30:11.763 [INFO] [AWT-EventQueue-0] [Domain] GameEngine: Move processed successfully: Player=BLACK, Position=(5, 8), NewState=com.omok.domain.model.GameState$Playing@21ebe295
+2025-06-26 21:30:11.763 [INFO] [AWT-EventQueue-0] [GameController] Move successful
+2025-06-26 21:30:11.764 [INFO] [DefaultDispatcher-worker-1] [ProcessAIMoveUseCase] Processing AI move in state: com.omok.domain.model.GameState$Playing@21ebe295
+2025-06-26 21:30:13.266 [INFO] [DefaultDispatcher-worker-1] [Domain] GameEngine: Processing AI move for player: WHITE, state: com.omok.domain.model.GameState$Playing@21ebe295
+2025-06-26 21:30:32.122 [INFO] [Timer-0] [AutoSaveService] Game auto-saved to: autosave_20250626_213032.omok
+2025-06-26 21:30:37.159 [INFO] [DefaultDispatcher-worker-1] [EnhancedAI] Best move: Position(row=8, col=8), thinking time: 23893ms
+2025-06-26 21:30:37.159 [INFO] [DefaultDispatcher-worker-1] [Domain] GameEngine: AI found move in 23893ms: Position=(8, 8)
+2025-06-26 21:30:37.159 [INFO] [DefaultDispatcher-worker-1] [Domain] GameEngine: Move processed successfully: Player=WHITE, Position=(8, 8), NewState=com.omok.domain.model.GameState$Playing@21ebe295
+2025-06-26 21:31:02.124 [INFO] [Timer-0] [AutoSaveService] Game auto-saved to: autosave_20250626_213102.omok
+2025-06-26 21:31:32.122 [INFO] [Timer-0] [AutoSaveService] Game auto-saved to: autosave_20250626_213132.omok
+2025-06-26 21:32:02.125 [INFO] [Timer-0] [AutoSaveService] Game auto-saved to: autosave_20250626_213202.omok
+2025-06-26 21:32:32.123 [INFO] [Timer-0] [AutoSaveService] Game auto-saved to: autosave_20250626_213232.omok
+2025-06-26 21:32:38.439 [INFO] [AWT-EventQueue-0] [GameController] Making move at position: (7, 7)
+2025-06-26 21:32:38.441 [WARN] [AWT-EventQueue-0] [Domain] GameEngine: Move rejected: 이미 돌이 놓여있습니다 at position (7, 7) for player BLACK
+2025-06-26 21:32:38.441 [WARN] [AWT-EventQueue-0] [GameController] Move failed - invalid move at position (7, 7)
+2025-06-26 21:32:47.354 [INFO] [AWT-EventQueue-0] [GameController] Making move at position: (7, 10)
+2025-06-26 21:32:47.355 [INFO] [AWT-EventQueue-0] [Domain] GameEngine: Move processed successfully: Player=BLACK, Position=(7, 10), NewState=com.omok.domain.model.GameState$Playing@21ebe295
+2025-06-26 21:32:47.355 [INFO] [AWT-EventQueue-0] [GameController] Move successful
+2025-06-26 21:32:47.357 [INFO] [DefaultDispatcher-worker-1] [ProcessAIMoveUseCase] Processing AI move in state: com.omok.domain.model.GameState$Playing@21ebe295
+2025-06-26 21:32:48.859 [INFO] [DefaultDispatcher-worker-1] [Domain] GameEngine: Processing AI move for player: WHITE, state: com.omok.domain.model.GameState$Playing@21ebe295
+2025-06-26 21:33:02.123 [INFO] [Timer-0] [AutoSaveService] Game auto-saved to: autosave_20250626_213302.omok
+2025-06-26 21:33:11.131 [INFO] [DefaultDispatcher-worker-1] [EnhancedAI] Best move: Position(row=9, col=6), thinking time: 22272ms
+2025-06-26 21:33:11.131 [INFO] [DefaultDispatcher-worker-1] [Domain] GameEngine: AI found move in 22272ms: Position=(9, 6)
+2025-06-26 21:33:11.131 [INFO] [DefaultDispatcher-worker-1] [Domain] GameEngine: Move processed successfully: Player=WHITE, Position=(9, 6), NewState=com.omok.domain.model.GameState$Playing@21ebe295
+2025-06-26 21:33:28.907 [INFO] [AWT-EventQueue-0] [GameController] Making move at position: (8, 11)
+2025-06-26 21:33:28.907 [INFO] [AWT-EventQueue-0] [Domain] GameEngine: Move processed successfully: Player=BLACK, Position=(8, 11), NewState=com.omok.domain.model.GameState$Playing@21ebe295
+2025-06-26 21:33:28.907 [INFO] [AWT-EventQueue-0] [GameController] Move successful
+2025-06-26 21:33:28.908 [INFO] [DefaultDispatcher-worker-1] [ProcessAIMoveUseCase] Processing AI move in state: com.omok.domain.model.GameState$Playing@21ebe295
+2025-06-26 21:33:30.409 [INFO] [DefaultDispatcher-worker-1] [Domain] GameEngine: Processing AI move for player: WHITE, state: com.omok.domain.model.GameState$Playing@21ebe295
+2025-06-26 21:33:30.414 [INFO] [DefaultDispatcher-worker-1] [EnhancedAI] Immediate move found: Position(row=4, col=7) in 4ms
+2025-06-26 21:33:30.414 [INFO] [DefaultDispatcher-worker-1] [Domain] GameEngine: AI found move in 5ms: Position=(4, 7)
+2025-06-26 21:33:30.414 [INFO] [DefaultDispatcher-worker-1] [Domain] GameEngine: Move processed successfully: Player=WHITE, Position=(4, 7), NewState=com.omok.domain.model.GameState$Playing@21ebe295
+2025-06-26 21:33:31.472 [INFO] [AWT-EventQueue-0] [GameController] Making move at position: (9, 12)
+2025-06-26 21:33:31.472 [INFO] [AWT-EventQueue-0] [Domain] GameEngine: Move processed successfully: Player=BLACK, Position=(9, 12), NewState=Won(winner=BLACK, winningLine=[Position(row=5, col=8), Position(row=6, col=9), Position(row=7, col=10), Position(row=8, col=11), Position(row=9, col=12)])
+2025-06-26 21:33:31.473 [INFO] [AWT-EventQueue-0] [GameController] Move successful
+2025-06-26 21:33:31.477 [INFO] [DefaultDispatcher-worker-1] [ProcessAIMoveUseCase] Processing AI move in state: Won(winner=BLACK, winningLine=[Position(row=5, col=8), Position(row=6, col=9), Position(row=7, col=10), Position(row=8, col=11), Position(row=9, col=12)])
+2025-06-26 21:33:31.495 [INFO] [DefaultDispatcher-worker-6] [FileAchievementRepository] Achievement progress saved successfully
+2025-06-26 21:33:31.495 [INFO] [DefaultDispatcher-worker-1] [FileAchievementRepository] Achievement progress saved successfully
+2025-06-26 21:33:31.496 [INFO] [DefaultDispatcher-worker-1] [FileAchievementRepository] Player stats saved successfully
+2025-06-26 21:33:31.496 [INFO] [DefaultDispatcher-worker-6] [FileAchievementRepository] Player stats saved successfully
+2025-06-26 21:33:31.497 [INFO] [DefaultDispatcher-worker-1] [FileAchievementRepository] Achievement progress saved successfully
+2025-06-26 21:33:31.499 [INFO] [DefaultDispatcher-worker-1] [FileAchievementRepository] Player stats saved successfully
+2025-06-26 21:33:31.499 [INFO] [DefaultDispatcher-worker-6] [FileAchievementRepository] Achievement progress saved successfully
+2025-06-26 21:33:31.501 [INFO] [DefaultDispatcher-worker-6] [FileAchievementRepository] Player stats saved successfully
+2025-06-26 21:33:31.503 [INFO] [DefaultDispatcher-worker-1] [FileAchievementRepository] Achievement progress saved successfully
+2025-06-26 21:33:31.506 [INFO] [DefaultDispatcher-worker-6] [FileAchievementRepository] Achievement progress saved successfully
+2025-06-26 21:33:31.507 [INFO] [DefaultDispatcher-worker-1] [FileAchievementRepository] Player stats saved successfully
+2025-06-26 21:33:31.508 [INFO] [DefaultDispatcher-worker-6] [FileAchievementRepository] Player stats saved successfully
+2025-06-26 21:33:31.509 [INFO] [DefaultDispatcher-worker-1] [FileAchievementRepository] Achievement progress saved successfully
+2025-06-26 21:33:31.511 [INFO] [DefaultDispatcher-worker-6] [FileAchievementRepository] Achievement progress saved successfully
+2025-06-26 21:33:31.512 [INFO] [DefaultDispatcher-worker-1] [FileAchievementRepository] Player stats saved successfully
+2025-06-26 21:33:31.513 [INFO] [DefaultDispatcher-worker-6] [FileAchievementRepository] Player stats saved successfully
+2025-06-26 21:33:31.515 [INFO] [DefaultDispatcher-worker-6] [FileAchievementRepository] Achievement progress saved successfully
+2025-06-26 21:33:31.516 [INFO] [DefaultDispatcher-worker-1] [FileAchievementRepository] Achievement progress saved successfully
+2025-06-26 21:33:31.516 [INFO] [DefaultDispatcher-worker-6] [FileAchievementRepository] Player stats saved successfully
+2025-06-26 21:33:31.517 [INFO] [DefaultDispatcher-worker-1] [FileAchievementRepository] Player stats saved successfully
+2025-06-26 21:33:31.520 [INFO] [DefaultDispatcher-worker-1] [FileAchievementRepository] Achievement progress saved successfully
+2025-06-26 21:33:31.523 [INFO] [DefaultDispatcher-worker-1] [FileAchievementRepository] Player stats saved successfully
+2025-06-26 21:33:32.123 [INFO] [Timer-0] [AutoSaveService] Game auto-saved to: autosave_20250626_213332.omok
+2025-06-26 21:33:32.978 [INFO] [DefaultDispatcher-worker-1] [Domain] GameEngine: Processing AI move for player: WHITE, state: Won(winner=BLACK, winningLine=[Position(row=5, col=8), Position(row=6, col=9), Position(row=7, col=10), Position(row=8, col=11), Position(row=9, col=12)])
+2025-06-26 21:33:32.978 [WARN] [DefaultDispatcher-worker-1] [Domain] GameEngine: AI cannot act in state: Won(winner=BLACK, winningLine=[Position(row=5, col=8), Position(row=6, col=9), Position(row=7, col=10), Position(row=8, col=11), Position(row=9, col=12)])
+2025-06-26 21:33:32.978 [ERROR] [DefaultDispatcher-worker-1] [ProcessAIMoveUseCase] AI move failed: AI cannot act in current game state
+2025-06-26 21:33:56.509 [INFO] [Thread-1] [Logger] Shutting down logger...
+2025-06-26 21:33:56.509 [INFO] [Thread-2] [Application] Shutting down application
+2025-06-26 21:33:56.511 [INFO] [Thread-2] [AutoSaveService] Auto-save stopped

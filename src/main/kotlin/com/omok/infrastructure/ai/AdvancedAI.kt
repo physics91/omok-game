@@ -3,6 +3,7 @@ package com.omok.infrastructure.ai
 import com.omok.domain.model.*
 import com.omok.domain.service.AIStrategy
 import com.omok.domain.service.RuleValidator
+import com.omok.infrastructure.logging.Logger
 import kotlin.math.*
 import kotlinx.coroutines.*
 import java.util.concurrent.ConcurrentHashMap
@@ -22,6 +23,14 @@ class AdvancedAI(
     
     // 트랜스포지션 테이블 (이미 계산한 보드 상태 저장)
     private val transpositionTable = ConcurrentHashMap<Long, TranspositionEntry>()
+    
+    // AI 사고 과정 콜백
+    private var thinkingProgressCallback: ((AIThinkingInfo) -> Unit)? = null
+    
+    // 평가 정보 수집
+    private val currentEvaluations = mutableListOf<AIEvaluation>()
+    private var nodesEvaluated = 0
+    private var currentBestMove: Position? = null
     
     companion object {
         // 점수 체계 - 더 세밀하게 조정
@@ -113,42 +122,124 @@ class AdvancedAI(
     )
     
     override fun getBestMove(board: Board, player: Player): Position? {
-        // 첫 수는 중앙에
-        if (board.isEmpty(Position.center())) {
-            return Position.center()
+        return try {
+            Logger.info("AdvancedAI", "Getting best move for player: $player")
+
+            // 평가 정보 초기화
+            currentEvaluations.clear()
+            nodesEvaluated = 0
+            currentBestMove = null
+
+            val moveCount = countStones(board)
+            val center = Position.center()
+
+            // 오프닝 룰 처리
+            when (moveCount) {
+                0 -> { // 1수 (흑)
+                    Logger.debug("AdvancedAI", "Opening Rule: 1st move, returning center")
+                    return center
+                }
+                1 -> { // 2수 (백)
+                    Logger.debug("AdvancedAI", "Opening Rule: 2nd move")
+                    val validMoves = getOpeningMoves(board, player, 1)
+                    return validMoves.maxByOrNull { evaluatePositionAdvanced(board, it, player) }
+                }
+                2 -> { // 3수 (흑)
+                    Logger.debug("AdvancedAI", "Opening Rule: 3rd move")
+                    val validMoves = getOpeningMoves(board, player, 2)
+                    return validMoves.maxByOrNull { evaluatePositionAdvanced(board, it, player) }
+                }
+            }
+
+            // 즉시 승리 가능한 수 확인
+            val immediateWin = findWinningMove(board, player)
+            if (immediateWin != null) {
+                Logger.info("AdvancedAI", "Found immediate winning move at (${immediateWin.row}, ${immediateWin.col})")
+                return immediateWin
+            }
+
+            // 상대방의 승리를 막아야 하는 수 확인
+            val mustBlock = findWinningMove(board, player.opponent())
+            if (mustBlock != null) {
+                Logger.info("AdvancedAI", "Must block opponent winning move at (${mustBlock.row}, ${mustBlock.col})")
+                return mustBlock
+            }
+
+            // 위협 분석
+            val threats = analyzeThreats(board, player)
+            val criticalThreat = threats.firstOrNull { it.threatLevel >= CRITICAL_THREAT }
+            if (criticalThreat != null) {
+                Logger.info("AdvancedAI", "Found critical threat at (${criticalThreat.position.row}, ${criticalThreat.position.col})")
+                return criticalThreat.position
+            }
+
+            // 고급 미니맥스 알고리즘 실행
+            Logger.debug("AdvancedAI", "Running advanced minimax algorithm")
+            runAdvancedMinimax(board, player)
+        } catch (e: Exception) {
+            Logger.error("AdvancedAI", "Error in getBestMove, falling back to simple strategy", e)
+            // 폴백: 간단한 전략으로 안전한 수 찾기
+            findSafeMove(board, player)
         }
-        
-        // 즉시 승리 가능한 수 확인
-        val immediateWin = findWinningMove(board, player)
-        if (immediateWin != null) return immediateWin
-        
-        // 상대방의 승리를 막아야 하는 수 확인
-        val mustBlock = findWinningMove(board, player.opponent())
-        if (mustBlock != null) return mustBlock
-        
-        // 위협 분석
-        val threats = analyzeThreats(board, player)
-        val criticalThreat = threats.firstOrNull { it.threatLevel >= CRITICAL_THREAT }
-        if (criticalThreat != null) return criticalThreat.position
-        
-        // 고급 미니맥스 알고리즘 실행
-        return runAdvancedMinimax(board, player)
+    }
+
+    private fun countStones(board: Board): Int {
+        var count = 0
+        for (row in 0 until Position.BOARD_SIZE) {
+            for (col in 0 until Position.BOARD_SIZE) {
+                if (!board.isEmpty(Position(row, col))) {
+                    count++
+                }
+            }
+        }
+        return count
+    }
+
+    private fun getOpeningMoves(board: Board, player: Player, radius: Int): List<Position> {
+        val moves = mutableListOf<Position>()
+        val center = Position.center()
+        for (row in (center.row - radius)..(center.row + radius)) {
+            for (col in (center.col - radius)..(center.col + radius)) {
+                val pos = Position(row, col)
+                if (pos.isValid() && board.isEmpty(pos) && pos != center) {
+                    if (ruleValidator.isValidMove(board, pos, player)) {
+                        moves.add(pos)
+                    }
+                }
+            }
+        }
+        return moves
+    }
+    
+    override fun setThinkingProgressCallback(callback: (AIThinkingInfo) -> Unit) {
+        thinkingProgressCallback = callback
     }
     
     private fun runAdvancedMinimax(board: Board, player: Player): Position? {
-        val candidateMoves = getCandidateMoves(board, player)
-        if (candidateMoves.isEmpty()) return null
-        
-        var bestScore = Int.MIN_VALUE
-        var bestMoves = mutableListOf<Position>()
-        val depth = when (difficulty) {
-            AIDifficulty.EASY -> 3
-            AIDifficulty.MEDIUM -> 5
-            AIDifficulty.HARD -> 7
-        }
+        return try {
+            val candidateMoves = getCandidateMoves(board, player)
+            if (candidateMoves.isEmpty()) {
+                Logger.error("AdvancedAI", "No candidate moves found")
+                return null
+            }
+            
+            Logger.debug("AdvancedAI", "Found ${candidateMoves.size} candidate moves")
+            
+            var bestScore = Int.MIN_VALUE
+            var bestMoves = mutableListOf<Position>()
+            val depth = when (difficulty) {
+                AIDifficulty.EASY -> 3
+                AIDifficulty.MEDIUM -> 5
+                AIDifficulty.HARD -> 7
+            }
+            
+            Logger.info("AdvancedAI", "Running minimax with depth $depth for difficulty $difficulty")
         
         // 병렬 처리로 각 후보수 평가
         runBlocking {
+            val totalMoves = candidateMoves.size
+            var evaluatedMoves = 0
+            
             val scores = candidateMoves.map { move ->
                 async(Dispatchers.Default) {
                     val newBoard = board.placeStone(Move(move, player))
@@ -161,6 +252,35 @@ class AdvancedAI(
                         player,
                         move
                     )
+                    
+                    // 평가 정보 수집
+                    synchronized(currentEvaluations) {
+                        evaluatedMoves++
+                        val evaluation = AIEvaluation(
+                            position = move,
+                            score = score,
+                            depth = depth,
+                            reason = getEvaluationReason(score)
+                        )
+                        currentEvaluations.add(evaluation)
+                        
+                        // 현재 최고 수 업데이트
+                        if (currentBestMove == null || score > currentEvaluations.maxOf { it.score }) {
+                            currentBestMove = move
+                        }
+                        
+                        // 진행 상황 콜백
+                        thinkingProgressCallback?.invoke(
+                            AIThinkingInfo(
+                                evaluations = currentEvaluations.toList(),
+                                currentBestMove = currentBestMove,
+                                thinkingProgress = evaluatedMoves.toFloat() / totalMoves,
+                                nodesEvaluated = nodesEvaluated,
+                                currentDepth = depth
+                            )
+                        )
+                    }
+                    
                     move to score
                 }
             }.awaitAll()
@@ -180,10 +300,23 @@ class AdvancedAI(
         }
         
         // 동점인 경우 추가 평가로 최선의 수 선택
-        return if (bestMoves.size > 1) {
+        val finalMove = if (bestMoves.size > 1) {
+            Logger.debug("AdvancedAI", "Multiple best moves found (${bestMoves.size}), evaluating advanced positions")
             bestMoves.maxByOrNull { evaluatePositionAdvanced(board, it, player) }
         } else {
             bestMoves.firstOrNull()
+        }
+        
+        if (finalMove != null) {
+            Logger.info("AdvancedAI", "Selected move: (${finalMove.row}, ${finalMove.col}) with score $bestScore")
+        } else {
+            Logger.error("AdvancedAI", "Failed to select a move")
+        }
+        
+        finalMove
+        } catch (e: Exception) {
+            Logger.error("AdvancedAI", "Error in runAdvancedMinimax", e)
+            null
         }
     }
     
@@ -224,6 +357,7 @@ class AdvancedAI(
         
         for (move in moves) {
             val newBoard = board.placeStone(Move(move, currentPlayer))
+            nodesEvaluated++  // 노드 평가 수 증가
             val score = alphaBeta(newBoard, depth - 1, localAlpha, localBeta, !isMaximizing, player, move)
             
             if (isMaximizing) {
@@ -460,10 +594,12 @@ class AdvancedAI(
             when (stone) {
                 player -> count++
                 null -> {
-                    if (i == 1 || board.getStone(Position(start.row + dr * (i - 1), start.col + dc * (i - 1))) == player) {
+                    val prevPos = Position(start.row + dr * (i - 1), start.col + dc * (i - 1))
+                    if (i == 1 || (prevPos.isValid() && board.getStone(prevPos) == player)) {
                         openEnds++
                     }
-                    if (i < 4 && board.getStone(Position(start.row + dr * (i + 1), start.col + dc * (i + 1))) == player) {
+                    val nextPos = Position(start.row + dr * (i + 1), start.col + dc * (i + 1))
+                    if (i < 4 && nextPos.isValid() && board.getStone(nextPos) == player) {
                         gaps++
                         i++ // 갭 건너뛰기
                     } else {
@@ -485,7 +621,8 @@ class AdvancedAI(
             when (stone) {
                 player -> count++
                 null -> {
-                    if (i == 1 || board.getStone(Position(start.row - dr * (i - 1), start.col - dc * (i - 1))) == player) {
+                    val prevPos = Position(start.row - dr * (i - 1), start.col - dc * (i - 1))
+                    if (i == 1 || (prevPos.isValid() && board.getStone(prevPos) == player)) {
                         openEnds++
                     }
                     break
@@ -509,6 +646,8 @@ class AdvancedAI(
     }
     
     private fun findWinningMove(board: Board, player: Player): Position? {
+        Logger.debug("AdvancedAI", "Searching for winning move for player: $player")
+        
         for (row in 0 until Position.BOARD_SIZE) {
             for (col in 0 until Position.BOARD_SIZE) {
                 val pos = Position(row, col)
@@ -516,15 +655,20 @@ class AdvancedAI(
                     val testBoard = board.placeStone(Move(pos, player))
                     val gameState = ruleValidator.checkWin(testBoard, pos, player)
                     if (gameState is GameState.Won) {
+                        Logger.debug("AdvancedAI", "Found winning move at (${pos.row}, ${pos.col}) for $player")
                         return pos
                     }
                 }
             }
         }
+        
+        Logger.debug("AdvancedAI", "No winning move found for $player")
         return null
     }
     
     private fun analyzeThreats(board: Board, player: Player): List<ThreatAnalysis> {
+        Logger.debug("AdvancedAI", "Analyzing threats for player: $player")
+        
         val threats = mutableListOf<ThreatAnalysis>()
         
         for (row in 0 until Position.BOARD_SIZE) {
@@ -546,7 +690,10 @@ class AdvancedAI(
             }
         }
         
-        return threats.sortedByDescending { it.threatLevel }
+        val sortedThreats = threats.sortedByDescending { it.threatLevel }
+        Logger.debug("AdvancedAI", "Found ${sortedThreats.size} threats, highest threat level: ${sortedThreats.firstOrNull()?.threatLevel ?: 0}")
+        
+        return sortedThreats
     }
     
     private fun analyzeThreatAt(board: Board, position: Position, player: Player, isOffensive: Boolean): ThreatAnalysis {
@@ -640,5 +787,311 @@ class AdvancedAI(
         return if (openThrees >= 2) openThrees else 0
     }
     
+    /**
+     * 안전한 수를 찾는 폴백 메서드
+     */
+    private fun findSafeMove(board: Board, player: Player): Position? {
+        Logger.debug("AdvancedAI", "Using safe move fallback strategy")
+        
+        // 중앙 근처의 유효한 수 찾기
+        val center = Position.center()
+        for (radius in 1..7) {
+            for (dr in -radius..radius) {
+                for (dc in -radius..radius) {
+                    if (kotlin.math.abs(dr) == radius || kotlin.math.abs(dc) == radius) {
+                        val pos = Position(center.row + dr, center.col + dc)
+                        if (pos.isValid() && board.isEmpty(pos) && 
+                            ruleValidator.isValidMove(board, pos, player)) {
+                            Logger.debug("AdvancedAI", "Found safe move at (${pos.row}, ${pos.col})")
+                            return pos
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 마지막 수단: 첫 번째 유효한 빈 칸
+        for (row in 0 until Position.BOARD_SIZE) {
+            for (col in 0 until Position.BOARD_SIZE) {
+                val pos = Position(row, col)
+                if (board.isEmpty(pos) && ruleValidator.isValidMove(board, pos, player)) {
+                    Logger.debug("AdvancedAI", "Found fallback move at (${pos.row}, ${pos.col})")
+                    return pos
+                }
+            }
+        }
+        
+        Logger.error("AdvancedAI", "No valid moves found")
+        return null
+    }
+    
     data class PositionScore(val position: Position, val score: Int)
+    
+    /**
+     * AI가 스왑(흑백 교체)를 할지 결정 - 고급 전략
+     */
+    override fun shouldSwap(board: Board, thirdMove: Position): Boolean {
+        Logger.info("AdvancedAI", "Evaluating swap decision for third move at (${thirdMove.row}, ${thirdMove.col})")
+        
+        // 현재 보드 상태를 정밀 분석
+        val blackAdvantage = analyzeOpeningAdvantage(board)
+        
+        // 난이도별 스왑 전략
+        val swapProbability = when (difficulty) {
+            AIDifficulty.EASY -> {
+                // 쉬운 난이도는 기본적인 평가
+                if (blackAdvantage > 150) 0.3 else 0.1
+            }
+            AIDifficulty.MEDIUM -> {
+                // 중간 난이도는 중간 수준 평가
+                if (blackAdvantage > 100) 0.6 else 0.3
+            }
+            AIDifficulty.HARD -> {
+                // 하드 난이도는 정밀한 평가
+                when {
+                    blackAdvantage > 200 -> 0.95
+                    blackAdvantage > 100 -> 0.8
+                    blackAdvantage > 0 -> 0.6
+                    else -> 0.3
+                }
+            }
+        }
+        
+        val shouldSwap = kotlin.random.Random.nextDouble() < swapProbability
+        Logger.info("AdvancedAI", "Black advantage: $blackAdvantage, swap probability: $swapProbability, decision: $shouldSwap")
+        
+        return shouldSwap
+    }
+    
+    /**
+     * 오프닝 우위 분석
+     */
+    private fun analyzeOpeningAdvantage(board: Board): Int {
+        val stones = mutableListOf<Position>()
+        for (row in 0 until Position.BOARD_SIZE) {
+            for (col in 0 until Position.BOARD_SIZE) {
+                val position = Position(row, col)
+                if (!board.isEmpty(position)) {
+                    stones.add(position)
+                }
+            }
+        }
+        
+        if (stones.size != 3) return 0
+        
+        val center = Position.center()
+        var advantage = 0
+        
+        // 중앙 제어 평가
+        stones.forEach { stone ->
+            val distance = kotlin.math.abs(stone.row - center.row) + kotlin.math.abs(stone.col - center.col)
+            advantage += when (distance) {
+                0 -> 100  // 천원
+                1 -> 50   // 천원 인접
+                2 -> 30   // 근거리
+                else -> 10
+            }
+        }
+        
+        // 패턴 형태 평가
+        if (stones.size == 3) {
+            val pattern = analyzeThreeStonePattern(stones)
+            advantage += pattern.advantageScore
+        }
+        
+        return advantage
+    }
+    
+    private data class ThreeStonePattern(
+        val type: String,
+        val advantageScore: Int
+    )
+    
+    private fun analyzeThreeStonePattern(stones: List<Position>): ThreeStonePattern {
+        // 3개 돌의 상대적 위치로 패턴 분석
+        val sorted = stones.sortedWith(compareBy({ it.row }, { it.col }))
+        
+        // 직선 패턴 확인
+        val isHorizontal = sorted.all { it.row == sorted[0].row }
+        val isVertical = sorted.all { it.col == sorted[0].col }
+        val isDiagonal = sorted.zipWithNext().all { (a, b) -> 
+            b.row - a.row == b.col - a.col || b.row - a.row == -(b.col - a.col)
+        }
+        
+        return when {
+            isHorizontal || isVertical -> ThreeStonePattern("직선", 150)
+            isDiagonal -> ThreeStonePattern("대각선", 120)
+            else -> ThreeStonePattern("분산", 80)
+        }
+    }
+    
+    /**
+     * AI가 5수로 제시할 두 위치를 선택 - 고급 전략
+     */
+    override fun proposeFifthMoves(board: Board): List<Position> {
+        Logger.info("AdvancedAI", "Proposing fifth moves")
+        
+        val candidates = findFifthMoveCandidates(board)
+        
+        if (candidates.size < 2) {
+            Logger.warn("AdvancedAI", "Not enough candidates for fifth moves")
+            return candidates.take(2)
+        }
+        
+        // 난이도별 전략
+        return when (difficulty) {
+            AIDifficulty.EASY -> {
+                // 쉬운 난이도: 무작위 선택
+                candidates.shuffled().take(2)
+            }
+            AIDifficulty.MEDIUM -> {
+                // 중간 난이도: 균형잡힌 선택
+                selectBalancedFifthMoves(candidates)
+            }
+            AIDifficulty.HARD -> {
+                // 하드 난이도: 전략적 선택 (흑에게 불리한 수)
+                selectStrategicFifthMoves(board, candidates)
+            }
+        }
+    }
+    
+    private fun findFifthMoveCandidates(board: Board): List<Position> {
+        val candidates = mutableListOf<Position>()
+        val center = Position.center()
+        
+        // 중앙에서 가까운 순으로 후보 탐색
+        for (distance in 1..5) {
+            for (row in (center.row - distance)..(center.row + distance)) {
+                for (col in (center.col - distance)..(center.col + distance)) {
+                    val pos = Position(row, col)
+                    if (pos.isValid() && board.isEmpty(pos) && 
+                        ruleValidator.isValidMove(board, pos, Player.BLACK)) {
+                        candidates.add(pos)
+                    }
+                }
+            }
+            if (candidates.size >= 20) break
+        }
+        
+        return candidates
+    }
+    
+    private fun selectBalancedFifthMoves(candidates: List<Position>): List<Position> {
+        if (candidates.size < 2) return candidates
+        
+        val first = candidates.random()
+        val second = candidates.filter { pos ->
+            val distance = kotlin.math.abs(pos.row - first.row) + kotlin.math.abs(pos.col - first.col)
+            distance in 3..5  // 적당한 거리
+        }.randomOrNull() ?: candidates.filter { it != first }.random()
+        
+        return listOf(first, second)
+    }
+    
+    private fun selectStrategicFifthMoves(board: Board, candidates: List<Position>): List<Position> {
+        // 각 후보의 점수를 계산 (낮을수록 흑에게 불리)
+        val scored = candidates.map { pos ->
+            val testBoard = board.placeStone(Move(pos, Player.BLACK))
+            // 간단한 평가: 주변 연결 가능성 계산
+            val score = evaluateMoveStrength(testBoard, pos, Player.BLACK)
+            pos to score
+        }.sortedBy { it.second }
+        
+        // 가장 불리한 2개 선택
+        return scored.take(2).map { it.first }
+    }
+    
+    private fun evaluateMoveStrength(board: Board, position: Position, player: Player): Int {
+        var score = 0
+        val directions = listOf(
+            Pair(0, 1), Pair(1, 0), Pair(1, 1), Pair(1, -1)
+        )
+        
+        for ((dr, dc) in directions) {
+            val line = buildLine(board, position, dr, dc, player)
+            val patterns = findPatterns(line)
+            
+            for (pattern in patterns) {
+                score += pattern.score
+            }
+        }
+        
+        return score
+    }
+    
+    /**
+     * AI가 제시된 5수 중 하나를 선택 - 고급 전략
+     */
+    override fun selectFifthMove(board: Board, proposedMoves: List<Position>): Position? {
+        if (proposedMoves.isEmpty()) return null
+        if (proposedMoves.size == 1) return proposedMoves[0]
+        
+        Logger.info("AdvancedAI", "Selecting from proposed fifth moves: ${proposedMoves.map { "(${it.row}, ${it.col})" }}")
+        
+        // 각 수의 평가 (백의 관점에서)
+        val evaluations = proposedMoves.map { pos ->
+            val testBoard = board.placeStone(Move(pos, Player.BLACK))
+            // 간단한 평가: 흑의 공격력 vs 백의 방어 기회
+            val blackStrength = evaluateMoveStrength(testBoard, pos, Player.BLACK)
+            val whiteOpportunity = evaluateDefenseOpportunity(testBoard, Player.WHITE)
+            val advantage = whiteOpportunity - blackStrength  // 백의 우위
+            
+            Logger.debug("AdvancedAI", "Position (${pos.row}, ${pos.col}): advantage=$advantage")
+            pos to advantage
+        }
+        
+        // 난이도별 선택
+        return when (difficulty) {
+            AIDifficulty.EASY -> {
+                // 쉬운 난이도: 무작위 선택
+                proposedMoves.random()
+            }
+            AIDifficulty.MEDIUM -> {
+                // 중간 난이도: 중간 정도 유리한 수 선택
+                evaluations.sortedByDescending { it.second }[evaluations.size / 2].first
+            }
+            AIDifficulty.HARD -> {
+                // 하드 난이도: 백에게 가장 유리한 수 선택
+                evaluations.maxByOrNull { it.second }?.first ?: proposedMoves[0]
+            }
+        }
+    }
+    
+    private fun evaluateDefenseOpportunity(board: Board, player: Player): Int {
+        var opportunity = 0
+        
+        // 보드 전체에서 백이 놓을 수 있는 좋은 위치 계산
+        for (row in 0 until Position.BOARD_SIZE) {
+            for (col in 0 until Position.BOARD_SIZE) {
+                val pos = Position(row, col)
+                if (board.isEmpty(pos) && board.hasAdjacentStone(pos)) {
+                    val testBoard = board.placeStone(Move(pos, player))
+                    opportunity += countThreats(testBoard, pos, player) * 100
+                }
+            }
+        }
+        
+        return opportunity
+    }
+    
+    /**
+     * 평가 점수에 따른 이유 설명
+     */
+    private fun getEvaluationReason(score: Int): String {
+        return when {
+            score >= WIN_SCORE -> "필승수"
+            score >= FIVE_IN_ROW -> "5리늑 달성"
+            score >= OPEN_FOUR -> "양끝 열린 4"
+            score >= DOUBLE_OPEN_THREE -> "열린 3-3"
+            score >= FOUR -> "4 만들기"
+            score >= OPEN_THREE -> "열린 3"
+            score >= DOUBLE_TWO -> "2-2 패턴"
+            score >= BLOCKED_THREE -> "막힌 3"
+            score >= OPEN_TWO -> "열린 2"
+            score <= -WIN_SCORE -> "필패 방어"
+            score <= -OPEN_FOUR -> "상대 4 방어"
+            score <= -OPEN_THREE -> "상대 3 방어"
+            else -> "일반 수"
+        }
+    }
 }

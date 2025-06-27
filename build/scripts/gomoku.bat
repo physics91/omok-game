@@ -68,11 +68,11 @@ goto fail
 :execute
 @rem Setup the command line
 
-set CLASSPATH=%APP_HOME%\lib\gomoku-1.0-SNAPSHOT.jar;%APP_HOME%\lib\kotlin-stdlib-1.9.0.jar;%APP_HOME%\lib\kotlin-stdlib-common-1.9.0.jar;%APP_HOME%\lib\annotations-13.0.jar
+set CLASSPATH=%APP_HOME%\lib\gomoku-1.0-SNAPSHOT.jar;%APP_HOME%\lib\kotlinx-coroutines-core-jvm-1.7.3.jar;%APP_HOME%\lib\kotlinx-coroutines-swing-1.7.3.jar;%APP_HOME%\lib\kotlin-stdlib-jdk8-1.9.0.jar;%APP_HOME%\lib\kotlinx-serialization-core-jvm-1.6.0.jar;%APP_HOME%\lib\kotlinx-serialization-json-jvm-1.6.0.jar;%APP_HOME%\lib\kotlin-stdlib-jdk7-1.9.0.jar;%APP_HOME%\lib\kotlin-stdlib-1.9.0.jar;%APP_HOME%\lib\batik-codec-1.17.jar;%APP_HOME%\lib\batik-transcoder-1.17.jar;%APP_HOME%\lib\batik-swing-1.17.jar;%APP_HOME%\lib\batik-bridge-1.17.jar;%APP_HOME%\lib\batik-script-1.17.jar;%APP_HOME%\lib\batik-anim-1.17.jar;%APP_HOME%\lib\batik-svg-dom-1.17.jar;%APP_HOME%\lib\batik-dom-1.17.jar;%APP_HOME%\lib\kotlin-stdlib-common-1.9.0.jar;%APP_HOME%\lib\annotations-23.0.0.jar;%APP_HOME%\lib\batik-gvt-1.17.jar;%APP_HOME%\lib\batik-svggen-1.17.jar;%APP_HOME%\lib\batik-parser-1.17.jar;%APP_HOME%\lib\batik-awt-util-1.17.jar;%APP_HOME%\lib\batik-gui-util-1.17.jar;%APP_HOME%\lib\batik-xml-1.17.jar;%APP_HOME%\lib\batik-css-1.17.jar;%APP_HOME%\lib\batik-util-1.17.jar;%APP_HOME%\lib\batik-ext-1.17.jar;%APP_HOME%\lib\batik-constants-1.17.jar;%APP_HOME%\lib\batik-i18n-1.17.jar;%APP_HOME%\lib\batik-shared-resources-1.17.jar;%APP_HOME%\lib\xml-apis-ext-1.3.04.jar;%APP_HOME%\lib\xml-apis-1.4.01.jar;%APP_HOME%\lib\xmlgraphics-commons-2.9.jar;%APP_HOME%\lib\commons-io-2.11.0.jar;%APP_HOME%\lib\commons-logging-1.0.4.jar
 
 
 @rem Execute gomoku
-"%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %GOMOKU_OPTS%  -classpath "%CLASSPATH%" com.omok.MainKt %*
+"%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %GOMOKU_OPTS%  -classpath "%CLASSPATH%" com.omok.presentation.MainKt %*
 
 :end
 @rem End local scope for the variables with windows NT shell

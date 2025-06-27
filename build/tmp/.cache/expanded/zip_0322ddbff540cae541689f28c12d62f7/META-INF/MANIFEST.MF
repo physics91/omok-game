@@ -1,0 +1,10 @@
+Manifest-Version: 1.0
+Ant-Version: Apache Ant 1.10.5
+Created-By: 1.8.0_201-b09 (Oracle Corporation)
+Implementation-Title: Apache XML Graphics Commons
+Implementation-Version: 2.9
+Implementation-Vendor: The Apache Software Foundation (http://xmlgraph
+ ics.apache.org/)
+Build-Id: 20230821-122114-BST (simon [Linux 5.4.0-73-generic amd64, Ja
+ va 1.8.0_201-b09])
+

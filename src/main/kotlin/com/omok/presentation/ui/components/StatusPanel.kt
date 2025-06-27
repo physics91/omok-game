@@ -1,6 +1,7 @@
 package com.omok.presentation.ui.components
 
 import com.omok.presentation.ui.theme.UITheme
+import com.omok.presentation.ui.icons.IconLoader
 import java.awt.*
 import javax.swing.*
 import javax.swing.border.EmptyBorder
@@ -9,6 +10,7 @@ class StatusPanel : JPanel() {
     private val statusIcon = JLabel()
     private val statusText = JLabel()
     private val turnIndicator = TurnIndicator()
+    private val coordinateLabel = JLabel()  // 마우스 좌표 표시
     
     init {
         layout = BorderLayout()
@@ -28,21 +30,36 @@ class StatusPanel : JPanel() {
         leftPanel.add(statusText)
         
         add(leftPanel, BorderLayout.WEST)
+        
+        // 중앙 패널에 좌표 표시
+        val centerPanel = JPanel(FlowLayout(FlowLayout.CENTER, 0, 0))
+        centerPanel.background = UITheme.Colors.SURFACE
+        
+        coordinateLabel.font = UITheme.Fonts.CAPTION
+        coordinateLabel.foreground = UITheme.Colors.GRAY_500
+        centerPanel.add(coordinateLabel)
+        
+        add(centerPanel, BorderLayout.CENTER)
         add(turnIndicator, BorderLayout.EAST)
     }
     
     fun updateStatus(text: String, isPlaying: Boolean = false) {
         statusText.text = text
-        statusIcon.text = when {
-            text.contains("승리") -> "[승리]"
-            text.contains("무승부") -> "[무승부]"
-            isPlaying -> "[진행중]"
-            else -> "[대기]"
+        statusIcon.icon = when {
+            text.contains("승리") -> IconLoader.getIcon(IconLoader.Icon.WIN, 20, 20)
+            text.contains("무승부") -> IconLoader.getIcon(IconLoader.Icon.TIMER, 20, 20)
+            text.contains("AI") -> IconLoader.getIcon(IconLoader.Icon.AI_THINKING, 20, 20)
+            isPlaying -> IconLoader.getIcon(IconLoader.Icon.TIMER, 20, 20)
+            else -> null
         }
     }
     
     fun setCurrentTurn(isBlackTurn: Boolean) {
         turnIndicator.setTurn(isBlackTurn)
+    }
+    
+    fun updateCoordinate(coordinate: String?) {
+        coordinateLabel.text = coordinate ?: ""
     }
     
     private class TurnIndicator : JPanel() {

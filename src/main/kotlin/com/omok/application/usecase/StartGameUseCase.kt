@@ -7,13 +7,12 @@ import com.omok.domain.model.GameSettings
 import com.omok.domain.service.GameEngine
 
 class StartGameUseCase(
-    private val gameEngine: GameEngine,
-    private val eventBus: GameEventBus
+    private val gameEngine: GameEngine
 ) {
     
     fun execute(settings: GameSettings): Game {
         val game = gameEngine.startNewGame(settings)
-        eventBus.publish(GameEvent.GameStarted(game))
+        GameEventBus.publish(GameEvent.GameStarted(game))
         return game
     }
 }
